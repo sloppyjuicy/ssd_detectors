@@ -12,6 +12,14 @@ from keras.optimizers import Optimizer
 from keras.legacy import interfaces
 
 
+def square_loss(y_true, y_pred):
+    loss = tf.square(y_true - y_pred)
+    return tf.reduce_sum(loss, axis=-1)
+
+def absolute_loss(y_true, y_pred):
+    loss = tf.abs(y_true - y_pred)
+    return tf.reduce_sum(loss, axis=-1)
+
 def smooth_l1_loss(y_true, y_pred):
     """Compute L1-smooth loss.
 
