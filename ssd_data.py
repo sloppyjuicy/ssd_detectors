@@ -316,7 +316,7 @@ class InputGenerator(object):
     """Model input generator for data augmentation."""
     # TODO
     # flag to protect bounding boxes from cropping?
-    # padding to preserve aspect ratio? crop_area_range=[0.75, 1.25]
+    # crop range > 1.0? crop_area_range=[0.75, 1.25]
     
     def __init__(self, gt_util, prior_util, batch_size, input_size,
                 preserve_aspect_ratio=True,
@@ -516,9 +516,13 @@ class InputGenerator(object):
                             img = img_tmp
                             y = y_tmp
                     
-                    img = cv2.resize(img, (w,h), cv2.INTER_LINEAR)
-                    img = img.astype(np.float32)
+                if self.preserve_aspect_ratio:
+                    img, y = pad_image(img, aspect_ratio, y)
+
+                img = cv2.resize(img, (w,h), cv2.INTER_LINEAR)
+                img = img.astype(np.float32)
                     
+                if self.augmentation:
                     random.shuffle(self.color_jitter)
                     for jitter in self.color_jitter: # saturation, brightness, contrast
                         img = jitter(img)
@@ -530,12 +534,6 @@ class InputGenerator(object):
                         img, y = self.vertical_flip(img, y, self.vflip_prob)
                     if self.add_noise:
                         img = self.noise(img)
-                else:
-                    img = cv2.resize(img, (w,h), cv2.INTER_LINEAR)
-                    img = img.astype(np.float32)
-                
-                if self.preserve_aspect_ratio:
-                    img, y = pad_image(img, aspect_ratio, y)
                 
                 if debug:
                     plt.figure(figsize=(12,6))
@@ -574,9 +572,6 @@ class InputGenerator(object):
                     # forgett last batch
                     inputs, targets = [], []
                     break
-                    
-            print('NEW epoch')
-        print('EXIT generator')
 
 
 def pad_image(img, aspect_ratio, gt_data=None):
