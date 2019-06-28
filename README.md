@@ -83,12 +83,12 @@ precision         0.937
 recall            0.926  
 f-measure         0.932  
 
-#### [TextBoxes++ with DennseNet and Focal Loss](http://83.169.39.135/ssd_detectors/201807091503_dsodtbpp512fl_synthtext.zip)
+#### [TextBoxes++ with DennseNet and Focal Loss](http://83.169.39.135/ssd_detectors/201906190710_dsodtbpp512fl_synthtext.zip)
 trained and tested on subsets of SynthText  
 threshold         0.35  
-precision         0.901  
-recall            0.931  
-f-measure         0.916  
+precision         0.984  
+recall            0.890  
+f-measure         0.934  
 
 
 #### [CRNN with LSTM](http://83.169.39.135/ssd_detectors/201806162129_crnn_lstm_synthtext.zip)
