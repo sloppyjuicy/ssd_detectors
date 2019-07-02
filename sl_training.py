@@ -169,9 +169,9 @@ class SegLinkFocalLoss(object):
         # y.shape (batches, segments, 2 x segment_label + 5 x segment_offset + 16 x inter_layer_links_label + 8 x cross_layer_links_label)
         
         if self.reduced_focal_loss:
-            from tfkeras.utils.training import reduced_focal_loss as focal_loss
+            from utils.training import reduced_focal_loss as focal_loss
         else:
-            from tfkeras.utils.training import focal_loss
+            from utils.training import focal_loss
         
         batch_size = tf.shape(y_true)[0]
         eps = K.epsilon()

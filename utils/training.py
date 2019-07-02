@@ -187,7 +187,7 @@ class ModelSnapshot(Callback):
         self.logdir = logdir
         self.interval = interval
         self.verbose = verbose
-
+    
     def on_epoch_begin(self, epoch, logs=None):
         self.epoch = epoch
     
@@ -196,7 +196,7 @@ class ModelSnapshot(Callback):
         # steps/batches/iterations
         steps_per_epoch = self.params['steps']
         self.iteration = self.epoch * steps_per_epoch + batch + 1
-        
+    
     def on_batch_end(self, batch, logs=None):
         if self.iteration % self.interval == 0:
             filepath = os.path.join(self.logdir, 'weights.%06i.h5' % (self.iteration))

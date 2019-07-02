@@ -122,7 +122,7 @@ class InputGenerator(object):
                     print(img_path)
                     continue
                 
-                # drop words with width > height here
+                # drop words with width < height here
                 mask = np.array([w.shape[1] > w.shape[0] for w in words])
                 words = np.asarray(words)[mask]
                 texts = texts[mask]
