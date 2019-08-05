@@ -104,8 +104,8 @@ def TBPP512(input_shape=(512, 512, 3), softmax=True):
     model.source_layers = source_layers
     
     model.aspect_ratios = [[1,2,3,5,1/2,1/3,1/5] * 2] * num_maps
-    #model.shifts = [[(0.0, 0.0)] * 7 + [(0.0, 1.0)] * 7] * num_maps
-    model.shifts = [[(0.0, -0.5)] * 7 + [(0.0, 0.5)] * 7] * num_maps
+    #model.shifts = [[(0.0, 0.0)] * 7 + [(0.0, 0.5)] * 7] * num_maps
+    model.shifts = [[(0.0, -0.25)] * 7 + [(0.0, 0.25)] * 7] * num_maps
     model.special_ssd_boxes = False
     model.scale = 0.5
     
@@ -132,8 +132,8 @@ def TBPP512_dense(input_shape=(512, 512, 3), softmax=True):
     model.source_layers = source_layers
     
     model.aspect_ratios = [[1,2,3,5,1/2,1/3,1/5] * 2] * num_maps
-    #model.shifts = [[(0.0, 0.0)] * 7 + [(0.0, 1.0)] * 7] * num_maps
-    model.shifts = [[(0.0, -0.5)] * 7 + [(0.0, 0.5)] * 7] * num_maps
+    #model.shifts = [[(0.0, 0.0)] * 7 + [(0.0, 0.5)] * 7] * num_maps
+    model.shifts = [[(0.0, -0.25)] * 7 + [(0.0, 0.25)] * 7] * num_maps
     model.special_ssd_boxes = False
     model.scale = 0.5
     
