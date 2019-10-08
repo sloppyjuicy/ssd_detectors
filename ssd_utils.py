@@ -396,11 +396,11 @@ class PriorUtil(object):
         self.map_offsets = map_offsets
         
         # normalized prior boxes
-        image_h, image_w = self.image_size
-        self.priors_xy_norm = self.priors_xy / (image_w, image_h)
-        self.priors_wh_norm = self.priors_wh / (image_w, image_h)
-        self.priors_min_xy_norm = self.priors_min_xy / (image_w, image_h)
-        self.priors_max_xy_norm = self.priors_max_xy / (image_w, image_h)
+        image_wh = self.image_size[::-1]
+        self.priors_xy_norm = self.priors_xy / image_wh
+        self.priors_wh_norm = self.priors_wh / image_wh
+        self.priors_min_xy_norm = self.priors_min_xy / image_wh
+        self.priors_max_xy_norm = self.priors_max_xy / image_wh
         self.priors_norm = np.concatenate([self.priors_min_xy_norm, self.priors_max_xy_norm, self.priors_variances], axis=1)
     
     
@@ -487,6 +487,7 @@ class PriorUtil(object):
         # calculation is done with normalized sizes
         
         prior_mask = model_output[:,4:] > confidence_threshold
+        image_wh = self.image_size[::-1]
         
         if sparse:
             # compute boxes only if the confidence is high enough and the class is not background
@@ -494,12 +495,12 @@ class PriorUtil(object):
             prior_mask = prior_mask[mask]
             mask = np.ix_(mask)[0]
             model_output = model_output[mask]
-            priors_xy = self.priors_xy[mask] / self.image_size
-            priors_wh = self.priors_wh[mask] / self.image_size
+            priors_xy = self.priors_xy[mask] / image_wh
+            priors_wh = self.priors_wh[mask] / image_wh
             priors_variances = self.priors_variances[mask,:]
         else:
-            priors_xy = self.priors_xy / self.image_size
-            priors_wh = self.priors_wh / self.image_size
+            priors_xy = self.priors_xy / image_wh
+            priors_wh = self.priors_wh / image_wh
             priors_variances = self.priors_variances
         
         offsets = model_output[:,:4]
@@ -563,8 +564,8 @@ class PriorUtil(object):
     def show_image(self, img):
         """Resizes an image to the network input size and shows it in the current figure.
         """
-        image_size = self.image_size # width, hight
-        img = cv2.resize(img, image_size, cv2.INTER_LINEAR)
+        image_wh = self.image_size[::-1]
+        img = cv2.resize(img, image_wh, cv2.INTER_LINEAR)
         img = img[:, :, (2,1,0)] # BGR to RGB
         img = img / 256.
         plt.imshow(img)
@@ -572,12 +573,12 @@ class PriorUtil(object):
     def plot_assignment(self, map_idx):
         ax = plt.gca()
         im = plt.gci()
-        img_h, img_w = image_size = im.get_size()
+        image_h, image_w = image_size = im.get_size()
         
         # ground truth
         boxes = self.gt_boxes
-        boxes_x = (boxes[:,0] + boxes[:,2]) / 2. * img_h
-        boxes_y = (boxes[:,1] + boxes[:,3]) / 2. * img_w
+        boxes_x = (boxes[:,0] + boxes[:,2]) / 2. * image_w
+        boxes_y = (boxes[:,1] + boxes[:,3]) / 2. * image_h
         for box in boxes:
             xy_rec = to_rec(box[:4], image_size)
             ax.add_patch(plt.Polygon(xy_rec, fill=False, edgecolor='b', linewidth=2))

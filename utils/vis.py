@@ -93,11 +93,11 @@ def to_rec(box, image_size):
     # Return
         xy_rec: Corner coordinates of rectangle, array of shape (4, 2).
     """
-    img_height, img_width = image_size
-    xmin = np.min(box[0::2]) * img_width
-    xmax = np.max(box[0::2]) * img_width
-    ymin = np.min(box[1::2]) * img_height
-    ymax = np.max(box[1::2]) * img_height
+    image_h, image_w = image_size
+    xmin = np.min(box[0::2]) * image_w
+    xmax = np.max(box[0::2]) * image_w
+    ymin = np.min(box[1::2]) * image_h
+    ymax = np.max(box[1::2]) * image_h
     xy_rec = np.array([[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax]])
     return xy_rec
 
