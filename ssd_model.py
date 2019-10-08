@@ -236,7 +236,7 @@ def SSD512(input_shape=(512, 512, 3), num_classes=21, softmax=True):
     model.image_size = input_shape[:2]
     model.source_layers = source_layers
     # stay compatible with caffe models
-    model.aspect_ratios = [[1,2,1/2], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,3,1/2,1/3], [1,2,1/2], [1,2,1/2]]
+    model.aspect_ratios = [[1,2,1/2], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2], [1,2,1/2]]
     #model.minmax_sizes = [(35, 76), (76, 153), (153, 230), (230, 307), (307, 384), (384, 460), (460, 537)]
     model.minmax_sizes = [(20.48, 51.2), (51.2, 133.12), (133.12, 215.04), (215.04, 296.96), (296.96, 378.88), (378.88, 460.8), (460.8, 542.72)]
     model.steps = [8, 16, 32, 64, 128, 256, 512]
@@ -303,7 +303,7 @@ def DSOD512(input_shape=(512, 512, 3), num_classes=21, activation='relu', softma
     # parameters for prior boxes
     model.image_size = input_shape[:2]
     model.source_layers = source_layers
-    model.aspect_ratios = [[1,2,1/2], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,3,1/2,1/3], [1,2,1/2], [1,2,1/2]]
+    model.aspect_ratios = [[1,2,1/2], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2], [1,2,1/2]]
     model.minmax_sizes = [(35, 76), (76, 153), (153, 230), (230, 307), (307, 384), (384, 460), (460, 537)]
     model.steps = [8, 16, 32, 64, 128, 256, 512]
     model.special_ssd_boxes = True
@@ -331,7 +331,7 @@ def SSD512_resnet(input_shape=(512, 512, 3), num_classes=21, softmax=True):
     model.image_size = input_shape[:2]
     model.source_layers = source_layers
     # stay compatible with caffe models
-    model.aspect_ratios = [[1,2,1/2], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,3,1/2,1/3], [1,2,1/2], [1,2,1/2]]
+    model.aspect_ratios = [[1,2,1/2], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2,3,1/3], [1,2,1/2], [1,2,1/2]]
     model.minmax_sizes = [(35, 76), (76, 153), (153, 230), (230, 307), (307, 384), (384, 460), (460, 537)]
     model.steps = [8, 16, 32, 64, 128, 256, 512]
     model.special_ssd_boxes = True
