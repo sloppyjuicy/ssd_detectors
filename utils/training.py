@@ -2,14 +2,13 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import keras.backend as K
+import tensorflow.keras.backend as K
 import tensorflow as tf
 import time
 import os
 
-from keras.callbacks import Callback
-from keras.optimizers import Optimizer
-from keras.legacy import interfaces
+from tensorflow.keras.callbacks import Callback
+from tensorflow.keras.optimizers import Optimizer
 
 
 def square_loss(y_true, y_pred):
@@ -358,7 +357,11 @@ def plot_log(log_dir, names=None, limits=None, window_length=250, log_dir_compar
         k_end = k.split('_')[-1]
         if k_end in ['loss']:
             ymin = 0
-            ymax = min(np.max(d[k][np.isfinite(d[k])]), np.mean(d[k][np.isfinite(d[k])])*8)
+            m = np.isfinite(d[k])
+            ymax = min(np.max(d[k][m]), np.mean(d[k][m])*8)
+            if log_dir_compare is not None:
+                m = np.isfinite(d2[k])
+                ymax = max(ymax, min(np.max(d2[k][m]), np.mean(d2[k][m])*8))
             ax1.set_ylim(ymin, ymax)
         if k_end in ['precision', 'recall', 'fmeasure', 'accuracy']:
             ax1.set_ylim(0, 1)
@@ -395,7 +398,6 @@ class AdamAccumulate(Optimizer):
         self.epsilon = epsilon
         self.accum_iters = K.variable(accum_iters)
     
-    @interfaces.legacy_get_updates_support
     def get_updates(self, loss, params):
         grads = self.get_gradients(loss, params)
         self.updates = [(self.iterations, self.iterations + 1)]

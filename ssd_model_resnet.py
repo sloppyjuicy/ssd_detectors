@@ -1,10 +1,10 @@
-import keras.backend as K
-from keras.layers import Activation
-from keras.layers import Conv2D
-from keras.layers import MaxPooling2D
-from keras.layers import BatchNormalization
-from keras.layers import add
-from keras.regularizers import l2
+import tensorflow.keras.backend as K
+from tensorflow.keras.layers import Activation
+from tensorflow.keras.layers import Conv2D
+from tensorflow.keras.layers import MaxPooling2D
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.layers import add
+from tensorflow.keras.regularizers import l2
 
 kernel_initializer = 'he_normal' 
 kernel_regularizer = l2(1.e-4)

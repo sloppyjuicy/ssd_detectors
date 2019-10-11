@@ -1,7 +1,7 @@
 """SegLink training utils."""
 
 import tensorflow as tf
-import keras.backend as K
+import tensorflow.keras.backend as K
 
 from utils.training import smooth_l1_loss, softmax_loss
 from ssd_training import compute_metrics
