@@ -53,7 +53,7 @@ def softmax_loss(y_true, y_pred):
     """
     eps = K.epsilon()
     y_pred = K.clip(y_pred, eps, 1.-eps)
-    loss = - y_true * tf.log(y_pred)
+    loss = - y_true * K.log(y_pred)
     return tf.reduce_sum(loss, axis=-1)
 
 def cross_entropy_loss(y_true, y_pred):
@@ -61,7 +61,7 @@ def cross_entropy_loss(y_true, y_pred):
     """
     eps = K.epsilon()
     y_pred = K.clip(y_pred, eps, 1.-eps)
-    loss = - y_true*tf.log(y_pred) - (1.-y_true)*tf.log(1.-y_pred)
+    loss = - y_true*K.log(y_pred) - (1.-y_true)*K.log(1.-y_pred)
     return tf.reduce_sum(loss, axis=-1)
 
 def focal_loss(y_true, y_pred, gamma=2., alpha=1.):
@@ -82,7 +82,7 @@ def focal_loss(y_true, y_pred, gamma=2., alpha=1.):
     #y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
     eps = K.epsilon()
     y_pred = K.clip(y_pred, eps, 1.-eps)
-    #loss = - K.pow(1-y_pred, gamma) * y_true*tf.log(y_pred) - K.pow(y_pred, gamma) * (1-y_true)*tf.log(1-y_pred)
+    #loss = - K.pow(1-y_pred, gamma) * y_true*K.log(y_pred) - K.pow(y_pred, gamma) * (1-y_true)*K.log(1-y_pred)
     pt = tf.where(tf.equal(y_true, 1.), y_pred, 1.-y_pred)
     loss = - K.pow(1.-pt, gamma) * K.log(pt)
     loss = alpha * loss
