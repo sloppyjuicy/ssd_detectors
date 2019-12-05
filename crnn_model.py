@@ -3,9 +3,8 @@
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Activation, Conv2D, MaxPool2D, BatchNormalization, LSTM, GRU
-from tensorflow.keras.layers.wrappers import Bidirectional
-from tensorflow.keras.layers import Reshape, Permute, Lambda
-from tensorflow.keras.layers.advanced_activations import LeakyReLU
+from tensorflow.keras.layers import Reshape, Permute, Lambda, Bidirectional
+from tensorflow.keras.layers import LeakyReLU
 
 
 def CRNN(input_shape, num_classes, prediction_only=False, gru=True):
@@ -39,8 +38,8 @@ def CRNN(input_shape, num_classes, prediction_only=False, gru=True):
     x = Conv2D(512, (2, 2), strides=(1, 1), activation=act, padding='valid', name='conv6_1')(x)
     x = Reshape((-1,512))(x)
     if gru:
-        x = Bidirectional(GRU(256, return_sequences=True))(x)
-        x = Bidirectional(GRU(256, return_sequences=True))(x)
+        x = Bidirectional(GRU(256, return_sequences=True, reset_after=False))(x)
+        x = Bidirectional(GRU(256, return_sequences=True, reset_after=False))(x)
     else:
         x = Bidirectional(LSTM(256, return_sequences=True))(x)
         x = Bidirectional(LSTM(256, return_sequences=True))(x)
