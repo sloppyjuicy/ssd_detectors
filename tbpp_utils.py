@@ -107,8 +107,6 @@ class PriorUtil(SSDPriorUtil):
             priors_xy = self.priors_xy / self.image_size
             priors_wh = self.priors_wh / self.image_size
             priors_variances = self.priors_variances
-            
-        #print('offsets', len(confidence), len(prior_mask))
         
         offsets = model_output[:,:4]
         offsets_quads = model_output[:,4:12]
@@ -139,32 +137,22 @@ class PriorUtil(SSDPriorUtil):
             boxes_to_process = boxes[mask]
             if len(boxes_to_process) > 0:
                 confs_to_process = confidence[mask, c]
-                #print(len(confs_to_process))
-                
-                # Tensorflow NMS
-                #feed_dict = {
-                #self.boxes: boxes_to_process,
-                #    self.scores: confs_to_process
-                #}
-                #idx = self.sess.run(self.nms, feed_dict=feed_dict)
                 
                 if fast_nms:
                     idx = non_maximum_suppression(
-                            boxes_to_process[:,:4], confs_to_process, 
+                            boxes_to_process, confs_to_process, 
                             self.nms_thresh, self.nms_top_k)
                 else:
                     idx = non_maximum_suppression_slow(
-                            boxes_to_process[:,:4], confs_to_process, 
+                            boxes_to_process, confs_to_process, 
                             self.nms_thresh, self.nms_top_k)
                 
                 good_boxes = boxes_to_process[idx]
                 good_confs = confs_to_process[idx][:, None]
                 labels = np.ones((len(idx),1)) * c
                 
-                good_quads = ref[mask][idx] + offsets_quads[mask][idx] * np.tile(priors_wh[mask][idx], (1,4)) * np.tile(variances_xy[mask][idx], (1,4))
+                good_quads = ref[mask][idx] + offsets_quads[mask][idx] * np.tile(priors_wh[mask][idx] * variances_xy[mask][idx], (1,4))
 
-                good_rboxs = offsets_rboxs[mask][idx]
-                
                 good_rboxs = np.empty((len(idx), 5))
                 good_rboxs[:,0:2] = priors_xy[mask][idx] + offsets_rboxs[mask][idx,0:2] * priors_wh[mask][idx] * variances_xy[mask][idx]
                 good_rboxs[:,2:4] = priors_xy[mask][idx] + offsets_rboxs[mask][idx,2:4] * priors_wh[mask][idx] * variances_xy[mask][idx]

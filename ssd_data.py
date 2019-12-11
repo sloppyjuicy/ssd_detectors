@@ -144,6 +144,9 @@ class BaseGTUtility(object):
             img_path = os.path.join(self.image_path, self.image_names[i])
             img = cv2.imread(img_path)
             
+            if type(img) != np.ndarray:
+                print('image not found: %s' % (img_path,))
+            
             if preserve_aspect_ratio:
                 img, gt = pad_image(img, aspect_ratio, self.data[i])
             else:
