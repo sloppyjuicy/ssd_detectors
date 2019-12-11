@@ -2,11 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import tensorflow as tf
-import keras.backend as K
-import h5py
 import cv2
-import os
 
 from tqdm import tqdm
 
@@ -190,7 +186,7 @@ class PriorMap(object):
         if self.step is None:
             step_x = image_w / map_w
             step_y = image_h / map_h
-            assert step_x % 1 == 0 and step_y % 1 == 0, 'map size %s not constiten with input height %s' % (map_size, image_size)
+            assert step_x % 1 == 0 and step_y % 1 == 0, 'map size %s not constiten with input size %s' % (map_size, image_size)
         else:
             step_x = step_y = self.step
             
