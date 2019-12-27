@@ -7,8 +7,8 @@ eps = 1e-10
 
 
 def rot_matrix(theta):
-    ct, st = np.cos(theta), np.sin(theta)
-    return np.array([[ct, -st],[st, ct]])
+    s, c = np.sin(theta), np.cos(theta)
+    return np.array([[c, -s],[s, c]])
 
 def polygon_to_rbox(xy):
     # center point plus width, height and orientation angle
