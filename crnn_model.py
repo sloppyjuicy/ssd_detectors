@@ -2,12 +2,12 @@
 
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Activation, Conv2D, MaxPool2D, BatchNormalization, LSTM, GRU
+from tensorflow.keras.layers import Input, Dense, Activation, Conv1D, Conv2D, MaxPool2D, BatchNormalization, LSTM, GRU
 from tensorflow.keras.layers import Reshape, Permute, Lambda, Bidirectional
 from tensorflow.keras.layers import LeakyReLU
 
 
-def CRNN(input_shape, num_classes, prediction_only=False, gru=True):
+def CRNN(input_shape, num_classes, prediction_only=False, gru=False, cnn=False):
     """CRNN architecture.
     
     # Arguments
@@ -17,7 +17,6 @@ def CRNN(input_shape, num_classes, prediction_only=False, gru=True):
     # References
         https://arxiv.org/abs/1507.05717
     """
-    #K.clear_session()
     
     #act = LeakyReLU(alpha=0.3)
     act = 'relu'
@@ -36,13 +35,22 @@ def CRNN(input_shape, num_classes, prediction_only=False, gru=True):
     x = BatchNormalization(name='batchnorm2')(x)
     x = MaxPool2D(pool_size=(2, 2), strides=(1, 2), name='pool5', padding='valid')(x)
     x = Conv2D(512, (2, 2), strides=(1, 1), activation=act, padding='valid', name='conv6_1')(x)
-    x = Reshape((-1,512))(x)
-    if gru:
+    s = x.shape
+    x = Reshape((s[1],s[3]))(x)
+    
+    if cnn:
+        for i in range(6):
+            x = BatchNormalization()(x)
+            x1 = Conv1D(128, 5, strides=1, dilation_rate=1, padding='same', activation=act)(x)
+            x2 = Conv1D(128, 5, strides=1, dilation_rate=2, padding='same', activation=act)(x)
+            x = concatenate([x1,x2])
+    elif gru:
         x = Bidirectional(GRU(256, return_sequences=True, reset_after=False))(x)
         x = Bidirectional(GRU(256, return_sequences=True, reset_after=False))(x)
     else:
         x = Bidirectional(LSTM(256, return_sequences=True))(x)
         x = Bidirectional(LSTM(256, return_sequences=True))(x)
+    
     x = Dense(num_classes, name='dense1')(x)
     x = y_pred = Activation('softmax', name='softmax')(x)
     
@@ -51,7 +59,7 @@ def CRNN(input_shape, num_classes, prediction_only=False, gru=True):
     if prediction_only:
         return model_pred
 
-    max_string_len = int(y_pred.shape[1])
+    max_string_len = s[1]
     
     # since keras currently does not support loss functions with extra parameters, 
     # we put the CTC loss in a lambda layer and call compile with a dummy loss
