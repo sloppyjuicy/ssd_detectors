@@ -3,7 +3,7 @@ import numpy as np
 import os
 import cv2
 
-from sl_utils import polygon_to_rbox
+from utils.bboxes import polygon_to_rbox
 
 
 def crop_words(img, boxes, height, width=None, grayscale=True):
@@ -60,7 +60,7 @@ def crop_words(img, boxes, height, width=None, grayscale=True):
 
         if width is not None:
             tmp_word = word[:,:width,:]
-            word = np.ones([height, width, tmp_word.shape[2]])
+            word = np.zeros([height, width, tmp_word.shape[2]])
             word[:,slice(0, tmp_word.shape[1]), :] = tmp_word
         
         words.append(word)
@@ -70,7 +70,7 @@ def crop_words(img, boxes, height, width=None, grayscale=True):
 class InputGenerator(object):
     """Model input generator for cropping bounding boxes."""
     def __init__(self, gt_util, batch_size, alphabet, input_size=(255,32),
-                grayscale=True, max_string_len=30):
+                grayscale=True, max_string_len=30, concatenate=False):
         
         self.__dict__.update(locals())
     
@@ -81,23 +81,23 @@ class InputGenerator(object):
         batch_size = self.batch_size
         width, height = self.input_size
         max_string_len = self.max_string_len
+        concatenate = self.concatenate
+        num_input_channels = 1 if self.grayscale else 3
         
         inputs = []
         targets = []
         
+        np.random.seed(1337)
         i = gt_util.num_samples
         while True:
             while len(targets) < batch_size:
                 if i == gt_util.num_samples:
                     idxs = np.arange(gt_util.num_samples)
-                    np.random.seed(1337)
                     np.random.shuffle(idxs)
                     i = 0
                     print('NEW epoch')
                 idx = idxs[i]
                 i += 1
-                
-                self.idx = idx
                 
                 img_name = gt_util.image_names[idx]
                 img_path = os.path.join(gt_util.image_path, img_name)
@@ -111,11 +111,12 @@ class InputGenerator(object):
                 mask = np.array([not (np.any(b < 0.) or np.any(b > 1.)) for b in boxes])
                 boxes = boxes[mask]
                 texts = texts[mask]
-                
                 if len(boxes) == 0: continue
                 
                 try:
-                    words = crop_words(img, boxes, height, width, self.grayscale)
+                    words = crop_words(img, boxes, height, 
+                                       None if concatenate else width,
+                                       self.grayscale)
                 except Exception as e:
                     import traceback
                     print(traceback.format_exc())
@@ -124,23 +125,52 @@ class InputGenerator(object):
                 
                 # drop words with width < height here
                 mask = np.array([w.shape[1] > w.shape[0] for w in words])
-                words = np.asarray(words)[mask]
+                words = [words[j] for j in range(len(words)) if mask[j]]
                 texts = texts[mask]
+                if len(words) == 0: continue
                 
-                inputs.extend(words)
-                targets.extend(texts)
-            
-            # shuffle batch
-            idxs_batch = np.arange(len(inputs))
-            np.random.shuffle(idxs_batch)
-            inputs = [inputs[j] for j in idxs_batch]
-            targets = [targets[j] for j in idxs_batch]
+                # shuffle words
+                idxs_words = np.arange(len(words))
+                np.random.shuffle(idxs_words)
+                words = [words[j] for j in idxs_words]
+                texts = texts[idxs_words]
+                
+                # concatenate all instances to one sample
+                if concatenate:
+                    words_join = []
+                    texts_join = []
+                    total_w = 0
+                    for j in range(len(words)):
+                        if j == 0:
+                            w = np.random.randint(8)
+                        else:
+                            w = np.random.randint(4, 32)
+                        total_w = total_w + w + words[j].shape[1]
+                        if total_w > width:
+                            break
+                        words_join.append(np.zeros([height, w, words[j].shape[2]]))
+                        words_join.append(words[j])
+                        texts_join.append(' ')
+                        texts_join.append(texts[j])
+                    if len(words_join) == 0: continue
+
+                    words_tmp = np.concatenate(words_join, axis=1)
+                    words = np.zeros([height, width, words_tmp.shape[2]])
+                    words[:,slice(0, words_tmp.shape[1]), :] = words_tmp
+
+                    texts = ''.join(texts_join)
+
+                    inputs.append(words)
+                    targets.append(texts)
+                else:
+                    inputs.extend(words)
+                    targets.extend(texts)
                 
             #yield inputs[:batch_size], targets[:batch_size]
             
             source_str = np.array(targets[:batch_size])
             
-            images = np.ones([batch_size, width, height, 1])
+            images = np.ones([batch_size, width, height, num_input_channels])
             labels = -np.ones([batch_size, max_string_len])
             input_length = np.zeros([batch_size, 1])
             label_length = np.zeros([batch_size, 1])

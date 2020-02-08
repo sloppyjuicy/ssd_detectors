@@ -4,6 +4,7 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Activation, Conv1D, Conv2D, MaxPool2D, BatchNormalization, LSTM, GRU
 from tensorflow.keras.layers import Reshape, Permute, Lambda, Bidirectional
+from tensorflow.keras.layers import concatenate
 from tensorflow.keras.layers import LeakyReLU
 
 
