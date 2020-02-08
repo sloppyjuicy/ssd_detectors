@@ -5,6 +5,7 @@ from keras.models import Model
 from keras.layers import Input, Dense, Activation, Conv1D, Conv2D, MaxPool2D, BatchNormalization, LSTM, GRU
 from keras.layers.wrappers import Bidirectional
 from keras.layers import Reshape, Permute, Lambda
+from keras.layers import concatenate
 from keras.layers.advanced_activations import LeakyReLU
 
 
