@@ -84,7 +84,7 @@ def count_parameters(model):
     print('non-trainable {:>16,d}'.format(non_trainable_count))
 
 
-def plot_parameter_statistic(model, layer_types=['Dense', 'Conv2D'], trainable=True, non_trainable=True, outputs=False):
+def plot_parameter_statistic(model, layer_types=['Dense', 'Conv2D'], trainable=True, non_trainable=True, outputs=False, channels=False):
     layer_types = [l.__name__ if type(l) == type else l for l in layer_types]
     
     def get_layers_recursion(model):
@@ -108,23 +108,29 @@ def plot_parameter_statistic(model, layer_types=['Dense', 'Conv2D'], trainable=T
     plt.figure(figsize=[12,max(len(y)//4,1)])
     
     offset = np.zeros(len(layers), dtype=int)
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
     legend = []
     if trainable:
         counts_trainable = [np.sum([K.count_params(p) for p in set(l.trainable_weights)]) for l in layers]
-        plt.barh(y, counts_trainable, align='center', color='#1f77b4')
+        plt.barh(y, counts_trainable, align='center', color=colors[0])
         offset += np.array(counts_trainable, dtype=int)
         legend.append('trainable')
     if non_trainable:
         counts_non_trainable = [np.sum([K.count_params(p) for p in set(l.non_trainable_weights)]) for l in layers]
-        plt.barh(y, counts_non_trainable, align='center', color='#ff7f0e',  left=offset)
+        plt.barh(y, counts_non_trainable, align='center', color=colors[1],  left=offset)
         offset += np.array(counts_non_trainable, dtype=int)
         legend.append('non-trainable')
     if outputs:
         counts_outputs = [np.sum([np.sum([np.prod(s[1:]) for s in n.output_shapes]) for n in l._inbound_nodes]) for l in layers]
-        plt.barh(y, counts_outputs, align='center', color='#2ca02c', left=offset)
+        plt.barh(y, counts_outputs, align='center', color=colors[2], left=offset)
         offset += np.array(counts_outputs, dtype=int)
         legend.append('outputs')
-        
+    if channels:
+        counts_channels = [l.output_shape[-1] for l in layers]
+        plt.barh(y, counts_channels, align='center', color=colors[3], left=offset)
+        offset += np.array(counts_channels, dtype=int)
+        legend.append('channels')
+    
     plt.yticks(y, names)
     plt.ylim(y[0]-1, y[-1]+1)
     ax = plt.gca()
