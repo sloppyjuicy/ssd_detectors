@@ -61,7 +61,7 @@ def plot_activation(model, input_image, layer_name):
         input_image: Test image which is feed into the network
         layer_name: Layer name of feature map
     """
-    from keras import backend as K
+    from tensorflow.keras import backend as K
     from IPython.display import display
     
     f = K.function(model.inputs, [model.get_layer(layer_name).output])

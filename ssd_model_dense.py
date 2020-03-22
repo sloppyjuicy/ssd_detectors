@@ -25,7 +25,7 @@ def dense_block(x, n, growth_rate, width=4, activation='relu'):
         c += growth_rate
     return x
 
-def bl_layer2(x, filters, width, padding='same', activation='relu'):
+def downsampling_block(x, filters, width, padding='same', activation='relu'):
     x1 = MaxPooling2D(pool_size=2, strides=2, padding=padding)(x)
     x1 = bn_acti_conv(x1, filters, 1, 1, padding, activation=activation)
     x2 = bn_acti_conv(x, filters*width, 1, 1, padding, activation=activation)
@@ -60,31 +60,33 @@ def dsod300_body(x, activation='relu'):
     # Dense Block 2
     x = dense_block(x, 8, growth_rate, 4, activation)
     x = bn_acti_conv(x, int(K.int_shape(x)[3]*compression), 1, 1, activation=activation)
-    source_layers.append(x) # 38x38x...
+    source_layers.append(x) # 38x38
     
-    x = x2 = MaxPooling2D(pool_size=2, strides=2)(x)
+    x = MaxPooling2D(pool_size=2, strides=2)(x)
+    x2 = x
     # Dense Block 3
     x = dense_block(x, 8, growth_rate, 4, activation)
     x = bn_acti_conv(x, int(K.int_shape(x)[3]*compression), 1, 1, activation=activation)
     # Dense Block 4
     x = dense_block(x, 8, growth_rate, 4, activation)
+    x1 = x
     
-    x1 = bn_acti_conv(x, 256, 1, 1, activation=activation)
+    x1 = bn_acti_conv(x1, 256, 1, 1, activation=activation)
     x2 = bn_acti_conv(x2, 256, 1, 1, activation=activation)
     x = concatenate([x1, x2], axis=3)
-    source_layers.append(x) # 19x19x512
+    source_layers.append(x) # 19x19
 
-    x = bl_layer2(x, 256, 1, activation=activation)
-    source_layers.append(x) # 10x10x512
+    x = downsampling_block(x, 256, 1, activation=activation)
+    source_layers.append(x) # 10x10
 
-    x = bl_layer2(x, 128, 1, activation=activation)
-    source_layers.append(x) # 5x5x256
+    x = downsampling_block(x, 128, 1, activation=activation)
+    source_layers.append(x) # 5x5
 
-    x = bl_layer2(x, 128, 1, activation=activation)
-    source_layers.append(x) # 3x3x256
+    x = downsampling_block(x, 128, 1, activation=activation)
+    source_layers.append(x) # 3x3
 
-    x = bl_layer2(x, 128, 1, padding='valid', activation=activation)
-    source_layers.append(x) # 1x1x256
+    x = downsampling_block(x, 128, 1, padding='valid', activation=activation)
+    source_layers.append(x) # 1x1
     
     return source_layers
 
@@ -117,40 +119,42 @@ def dsod512_body(x, activation='relu'):
     # Dense Block 2
     x = dense_block(x, 8, growth_rate, 4, activation)
     x = bn_acti_conv(x, int(K.int_shape(x)[3]*compression), 1, 1, activation=activation)
-    source_layers.append(x) # 64x64x...
-
-    x = x2 = MaxPooling2D(pool_size=2, strides=2)(x)
+    source_layers.append(x) # 64x64
+    
+    x = MaxPooling2D(pool_size=2, strides=2)(x)
+    x2 = x
     # Dense Block 3
     x = dense_block(x, 8, growth_rate, 4, activation)
     x = bn_acti_conv(x, int(K.int_shape(x)[3]*compression), 1, 1, activation=activation)
     # Dense Block 4
     x = dense_block(x, 8, growth_rate, 4, activation)
+    x1 = x
     
-    x1 = bn_acti_conv(x, 256, 1, 1, activation=activation)
+    x1 = bn_acti_conv(x1, 256, 1, 1, activation=activation)
     x2 = bn_acti_conv(x2, 256, 1, 1, activation=activation)
     x = concatenate([x1, x2], axis=3)
-    source_layers.append(x) # 32x32x512
+    source_layers.append(x) # 32x32
 
-    x = bl_layer2(x, 256, 1, activation=activation)
-    source_layers.append(x) # 16x16x512
+    x = downsampling_block(x, 256, 1, activation=activation)
+    source_layers.append(x) # 16x16
 
-    x = bl_layer2(x, 128, 1, activation=activation)
-    source_layers.append(x) # 8x8x256
+    x = downsampling_block(x, 128, 1, activation=activation)
+    source_layers.append(x) # 8x8
 
-    x = bl_layer2(x, 128, 1, activation=activation)
-    source_layers.append(x) # 4x4x256
+    x = downsampling_block(x, 128, 1, activation=activation)
+    source_layers.append(x) # 4x4
 
-    x = bl_layer2(x, 128, 1, activation=activation)
-    source_layers.append(x) # 2x2x256
+    x = downsampling_block(x, 128, 1, activation=activation)
+    source_layers.append(x) # 2x2
     
-    x = bl_layer2(x, 128, 1, activation=activation)
-    source_layers.append(x) # 1x1x256
+    x = downsampling_block(x, 128, 1, activation=activation)
+    source_layers.append(x) # 1x1
     
     return source_layers
 
 
 def ssd384x512_dense_body(x, activation='relu'):
-    # used for SegLink
+    # used for SegLink 384x512
     
     if activation == 'leaky_relu':
         activation = leaky_relu
@@ -178,19 +182,19 @@ def ssd384x512_dense_body(x, activation='relu'):
     x = bn_acti_conv(x, int(K.int_shape(x)[3]*compression), 1, 1, activation=activation)
     source_layers.append(x)
     
-    x = bl_layer2(x, 320, 1, activation=activation)
+    x = downsampling_block(x, 320, 1, activation=activation)
     source_layers.append(x)
 
-    x = bl_layer2(x, 256, 1, activation=activation)
+    x = downsampling_block(x, 256, 1, activation=activation)
     source_layers.append(x)
 
-    x = bl_layer2(x, 192, 1, activation=activation)
+    x = downsampling_block(x, 192, 1, activation=activation)
     source_layers.append(x)
 
-    x = bl_layer2(x, 128, 1, activation=activation)
+    x = downsampling_block(x, 128, 1, activation=activation)
     source_layers.append(x)
     
-    x = bl_layer2(x, 64, 1, activation=activation)
+    x = downsampling_block(x, 64, 1, activation=activation)
     source_layers.append(x)
     
     return source_layers
