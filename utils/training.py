@@ -79,8 +79,8 @@ def focal_loss(y_true, y_pred, gamma=2., alpha=1.):
     # References
         https://arxiv.org/abs/1708.02002
     """
-    #y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
     eps = K.epsilon()
+    #y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
     y_pred = K.clip(y_pred, eps, 1.-eps)
     #loss = - K.pow(1-y_pred, gamma) * y_true*K.log(y_pred) - K.pow(y_pred, gamma) * (1-y_true)*K.log(1-y_pred)
     pt = tf.where(tf.equal(y_true, 1.), y_pred, 1.-y_pred)
@@ -104,8 +104,8 @@ def reduced_focal_loss(y_true, y_pred, gamma=2., alpha=1., th=0.5):
     # References
         https://arxiv.org/abs/1903.01347
     """
-    #y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
     eps = K.epsilon()
+    #y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
     y_pred = K.clip(y_pred, eps, 1.-eps)
     pt = tf.where(tf.equal(y_true, 1.), y_pred, 1.-y_pred)
     fr = tf.where(tf.less(pt, th), K.ones_like(pt), K.pow(1.-pt, gamma)/(th**gamma))
@@ -354,8 +354,8 @@ def plot_log(log_dir, names=None, limits=None, window_length=250, log_dir_compar
         #ax2.set_yscale('linear')
         ax2.get_yaxis().get_major_formatter().set_useOffset(False)
         
-        k_end = k.split('_')[-1]
-        if k_end in ['loss']:
+        k_split = k.split('_')
+        if k_split[0] in ['loss', 'error'] or k_split[-1] in ['loss', 'error']:
             ymin = 0
             m = np.isfinite(d[k])
             ymax = min(np.max(d[k][m]), np.mean(d[k][m])*8)
@@ -363,7 +363,7 @@ def plot_log(log_dir, names=None, limits=None, window_length=250, log_dir_compar
                 m = np.isfinite(d2[k])
                 ymax = max(ymax, min(np.max(d2[k][m]), np.mean(d2[k][m])*8))
             ax1.set_ylim(ymin, ymax)
-        if k_end in ['precision', 'recall', 'fmeasure', 'accuracy']:
+        if k_split[-1] in ['precision', 'recall', 'fmeasure', 'accuracy']:
             ax1.set_ylim(0, 1)
         
         plt.show()

@@ -6,7 +6,7 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.layers import Layer
 
 
-class TBPPDecoderAndCrop(Layer):
+class TBPPDecodeAndCrop(Layer):
     # requires tensorflow-addons
     # does not work with changing image size or more then one class
     def __init__(self, prior_util, confidence_threshold=0.01, iou_threshold=0.45, top_k=200, output_size=(32, 256), **kwargs):

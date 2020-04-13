@@ -2,9 +2,22 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import tensorflow.keras.backend as K
 import h5py
 import os
+
+
+def get_layers(model):
+    """Collects all layers in a model and the models contained in the model."""
+    layers = []
+    def get(m):
+        for l in m.layers:
+            if l.__class__.__name__ == 'Model':
+                get(l)
+            else:
+                if l not in layers:
+                    layers.append(l)
+    get(model)
+    return layers
 
 
 def load_weights(model, filepath, layer_names=None):
@@ -62,8 +75,8 @@ def calc_memory_usage(model, batch_size=1):
     for l in model.layers:
         shapes_mem_count += np.sum([np.sum([np.prod(s[1:]) for s in n.output_shapes]) for n in l._inbound_nodes])
         
-    trainable_count = np.sum([K.count_params(p) for p in set(model.trainable_weights)])
-    non_trainable_count = np.sum([K.count_params(p) for p in set(model.non_trainable_weights)])
+    trainable_count = np.sum([np.prod(p.shape) for p in model.trainable_weights])
+    non_trainable_count = np.sum([np.prod(p.shape) for p in model.non_trainable_weights])
     
     # each shape unit occupies 4 bytes in memory
     total_memory = 4.0 * batch_size * (shapes_mem_count + trainable_count + non_trainable_count)
@@ -77,30 +90,18 @@ def calc_memory_usage(model, batch_size=1):
 
 
 def count_parameters(model):
-    trainable_count = int(np.sum([K.count_params(p) for p in set(model.trainable_weights)]))
-    non_trainable_count = int(np.sum([K.count_params(p) for p in set(model.non_trainable_weights)]))
+    trainable_count = int(np.sum([np.prod(p.shape) for p in model.trainable_weights]))
+    non_trainable_count = int(np.sum([np.prod(p.shape) for p in model.non_trainable_weights]))
     
     print('trainable     {:>16,d}'.format(trainable_count))
     print('non-trainable {:>16,d}'.format(non_trainable_count))
+    
+    return trainable_count + non_trainable_count
 
 
-def plot_parameter_statistic(model, layer_types=['Dense', 'Conv2D'], trainable=True, non_trainable=True, outputs=False):
+def plot_parameter_statistic(model, layer_types=['Dense', 'Conv2D'], trainable=True, non_trainable=True, outputs=False, channels=False):
     layer_types = [l.__name__ if type(l) == type else l for l in layer_types]
-    
-    def get_layers_recursion(model):
-        layers = []
-        for l in model.layers:
-            if l.__class__.__name__ is 'Model':
-                child_layers = get_layers_recursion(l)
-            else:
-                child_layers = [l]
-            for cl in child_layers:
-                if cl not in layers:
-                    layers.append(cl)
-        return layers
-    
-    layers = get_layers_recursion(model)
-    
+    layers = get_layers(model)
     layers = [l for l in layers if l.__class__.__name__ in layer_types]
     names = [l.name for l in layers]
     y = range(len(names))
@@ -109,21 +110,27 @@ def plot_parameter_statistic(model, layer_types=['Dense', 'Conv2D'], trainable=T
     
     offset = np.zeros(len(layers), dtype=int)
     legend = []
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
     if trainable:
-        counts_trainable = [np.sum([K.count_params(p) for p in set(l.trainable_weights)]) for l in layers]
-        plt.barh(y, counts_trainable, align='center', color='#1f77b4')
+        counts_trainable = [np.sum([np.prod(p.shape) for p in l.trainable_weights]) for l in layers]
+        plt.barh(y, counts_trainable, align='center', color=colors[0])
         offset += np.array(counts_trainable, dtype=int)
         legend.append('trainable')
     if non_trainable:
-        counts_non_trainable = [np.sum([K.count_params(p) for p in set(l.non_trainable_weights)]) for l in layers]
-        plt.barh(y, counts_non_trainable, align='center', color='#ff7f0e',  left=offset)
+        counts_non_trainable = [np.sum([np.prod(p.shape) for p in l.non_trainable_weights]) for l in layers]
+        plt.barh(y, counts_non_trainable, align='center', color=colors[1],  left=offset)
         offset += np.array(counts_non_trainable, dtype=int)
         legend.append('non-trainable')
     if outputs:
         counts_outputs = [np.sum([np.sum([np.prod(s[1:]) for s in n.output_shapes]) for n in l._inbound_nodes]) for l in layers]
-        plt.barh(y, counts_outputs, align='center', color='#2ca02c', left=offset)
+        plt.barh(y, counts_outputs, align='center', color=colors[2], left=offset)
         offset += np.array(counts_outputs, dtype=int)
         legend.append('outputs')
+    if channels:
+        counts_channels = [l.output_shape[-1] for l in layers]
+        plt.barh(y, counts_channels, align='center', color=colors[3], left=offset)
+        offset += np.array(counts_channels, dtype=int)
+        legend.append('channels')
         
     plt.yticks(y, names)
     plt.ylim(y[0]-1, y[-1]+1)
