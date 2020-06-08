@@ -68,7 +68,6 @@ class SSDLoss(object):
     def compute(self, y_true, y_pred):
         # y.shape (batches, priors, 4 x segment_offset + n x class_label)
         # TODO: negatives_for_hard?
-        #       mask based on y_true or y_pred?
         
         batch_size = tf.shape(y_true)[0]
         num_priors = tf.shape(y_true)[1]
