@@ -4,11 +4,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import tensorflow.keras.backend as K
 import tensorflow as tf
-import time
-import os
+import time, os, warnings
 
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.optimizers import Optimizer
+from tensorflow.keras.metrics import Mean
 
 
 def square_loss(y_true, y_pred):
@@ -209,6 +209,8 @@ class Logger(Callback):
     def __init__(self, logdir):
         super(Logger, self).__init__()
         self.logdir = logdir
+        if not os.path.exists(logdir):
+            os.makedirs(logdir)
     
     def save_history(self):
         df = pd.DataFrame.from_dict(self.model.history.history)
@@ -248,6 +250,118 @@ class Logger(Callback):
         self.save_history()
 
 
+class MetricUtility():
+    """History and Log for Tensorflow 2.x Eager API.
+    
+    # Arguments
+        names: list of metric names.
+        logdir: If specified, the log and history are written to csv files.
+    
+    The update methode receives a dictionary with values for each metric and
+    should be called after each iteration.
+    
+    # example
+        mu = MetricUtility(['loss', 'accuracy'], logdir='./')
+        for each epoch:
+            mu.on_epoch_begin()
+            for each training step:
+                ...
+                mu.update(metric_values, training=True)
+            for each validation step:
+                ...
+                mu.update(metric_values, training=False)
+            mu.on_epoch_end(verbose=True)
+    """
+    
+    def __init__(self, names=['loss',], logdir=None):
+        self.names = names
+        self.logdir = logdir
+        
+        if logdir is not None:
+            self.log_path = os.path.join(self.logdir, 'log.csv')
+            self.history_path = os.path.join(self.logdir, 'history.csv')
+            if not os.path.exists(logdir):
+                os.makedirs(logdir)
+            if os.path.exists(self.log_path):
+                os.remove(self.log_path)
+            if os.path.exists(self.history_path):
+                os.remove(self.history_path)
+        
+        self.reset()
+        
+    def reset(self):
+        self.iteration = 0
+        self.epoch = 0
+        self.training = True
+        self.log = {n: [] for n in self.names}
+        self.log.update({'epoch': [], 'time': []})
+        self.history = {n: [] for n in self.names}
+        self.history.update({'val_'+n: [] for n in self.names})
+        self.history.update({'epoch': [], 'time': []})
+    
+    def on_epoch_begin(self):
+        if self.epoch == 0:
+            self.t0 = time.time()
+        self.t1 = time.time()
+        self.epoch += 1
+        self.steps = 0
+        self.steps_val = 0
+        self.metrics = {n: Mean() for n in self.names}
+        self.metrics_val = {n: Mean() for n in self.names}
+        
+    def update(self, values, training=True):
+        if self.training and not training:
+            self.t2 = time.time()
+        self.training = training
+        float_values = {n: float(v) for n, v in values.items()}
+        if training:
+            self.iteration += 1
+            self.steps += 1
+            for n, v in float_values.items():
+                self.metrics[n].update_state(v)
+                self.log[n].append(v)
+            self.log['epoch'].append(self.epoch)
+            self.log['time'].append(time.time()-self.t0)
+            
+            if self.logdir is not None:
+                float_values = {k:v[-1:] for k, v in self.log.items()}
+                df = pd.DataFrame.from_dict(float_values)
+                with open(self.log_path, 'a') as f:
+                    df.to_csv(f, header=f.tell()==0, index=False)
+        else:
+            self.steps_val += 1
+            for n, v in float_values.items():
+                self.metrics_val[n].update_state(v)
+
+    def on_epoch_end(self, verbose=True):
+        if self.steps == 0:
+            warnings.warn('no metric update was done')
+            return
+        
+        float_values = {n: float(m.result()) for n, m in self.metrics.items()}
+        if self.steps_val > 0:
+            float_values.update({'val_'+n: float(m.result()) for n, m in self.metrics_val.items()})
+        else:
+            self.t2 = self.t3
+        
+        for n, v in float_values.items():
+            self.history[n].append(v)
+        self.history['epoch'].append(self.epoch)
+        self.history['time'].append(time.time()-self.t0)
+        
+        if self.logdir is not None:
+            float_values = {k:v[-1:] for k, v in self.history.items()}
+            df = pd.DataFrame.from_dict(float_values)
+            with open(self.history_path, 'a') as f:
+                df.to_csv(f, header=f.tell()==0, index=False)
+        
+        if verbose:
+            t1, t2, t3 = self.t1, self.t2, time.time()
+            for n, v in self.history.items():
+                print('%s %5.5f ' % (n, v[-1]), end='')
+            print('\n%.1f minutes/epoch  %.2f iter/sec' % ((t3-t1)/60, self.epoch/(t2-t1)))
+
+
 def filter_signal(x, y, window_length=1000):
     if type(window_length) is not int or len(y) <= window_length:
         return [], []
@@ -275,6 +389,7 @@ def plot_log(log_dir, names=None, limits=None, window_length=250, log_dir_compar
     
     print(log_dir)
     d = pd.read_csv(os.path.join('.', 'checkpoints', log_dir, 'log.csv'))
+    if 'iteration' not in d.keys(): d['iteration'] = np.arange(len(d))
     d = d[limits]
     iteration = np.array(d['iteration'])
     epoch = np.array(d['epoch'])
@@ -283,6 +398,7 @@ def plot_log(log_dir, names=None, limits=None, window_length=250, log_dir_compar
     if log_dir_compare is not None:
         print(log_dir_compare)
         d2 = pd.read_csv(os.path.join('.', 'checkpoints', log_dir_compare, 'log.csv'))
+        if 'iteration' not in d2.keys(): d2['iteration'] = np.arange(len(d2))
         d2 = d2[limits]
         iteration2 = np.array(d2['iteration'])
         
@@ -381,7 +497,7 @@ class AdamAccumulate(Optimizer):
         beta_2: float, 0 < beta < 1. Generally close to 1.
         epsilon: float >= 0. Fuzz factor. If `None`, defaults to `K.epsilon()`.
         accum_iters: Number of batches between parameter update.
-        
+
     # References
         - [Adam - A Method for Stochastic Optimization](http://arxiv.org/abs/1412.6980v8)
         - [On the Convergence of Adam and Beyond](https://openreview.net/forum?id=ryQu7f-RZ)
