@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import tensorflow.keras.backend as K
 import tensorflow as tf
-import time, os, warnings
+import time, os, warnings, itertools
 
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.optimizers import Optimizer
@@ -260,7 +260,7 @@ class MetricUtility():
     The update methode receives a dictionary with values for each metric and
     should be called after each iteration.
     
-    # example
+    # Example
         mu = MetricUtility(['loss', 'accuracy'], logdir='./')
         for each epoch:
             mu.on_epoch_begin()
@@ -273,9 +273,10 @@ class MetricUtility():
             mu.on_epoch_end(verbose=True)
     """
     
-    def __init__(self, names=['loss',], logdir=None):
+    def __init__(self, names=['loss',], logdir=None, optimizer=None):
         self.names = names
         self.logdir = logdir
+        self.optimizer = optimizer
         
         if logdir is not None:
             self.log_path = os.path.join(self.logdir, 'log.csv')
@@ -298,6 +299,9 @@ class MetricUtility():
         self.history = {n: [] for n in self.names}
         self.history.update({'val_'+n: [] for n in self.names})
         self.history.update({'epoch': [], 'time': []})
+        if self.optimizer is not None:
+            self.log.update({'learning_rate': []})
+            self.history.update({'learning_rate': []})
     
     def on_epoch_begin(self):
         if self.epoch == 0:
@@ -322,6 +326,8 @@ class MetricUtility():
                 self.log[n].append(v)
             self.log['epoch'].append(self.epoch)
             self.log['time'].append(time.time()-self.t0)
+            if self.optimizer is not None:
+                self.log['learning_rate'].append(float(self.optimizer.learning_rate))
             
             if self.logdir is not None:
                 float_values = {k:v[-1:] for k, v in self.log.items()}
@@ -348,6 +354,8 @@ class MetricUtility():
             self.history[n].append(v)
         self.history['epoch'].append(self.epoch)
         self.history['time'].append(time.time()-self.t0)
+        if self.optimizer is not None:
+            self.history['learning_rate'].append(float(self.optimizer.learning_rate))
         
         if self.logdir is not None:
             float_values = {k:v[-1:] for k, v in self.history.items()}
@@ -359,7 +367,7 @@ class MetricUtility():
             t1, t2, t3 = self.t1, self.t2, time.time()
             for n, v in self.history.items():
                 print('%s %5.5f ' % (n, v[-1]), end='')
-            print('\n%.1f minutes/epoch  %.2f iter/sec' % ((t3-t1)/60, self.epoch/(t2-t1)))
+            print('\n%.1f minutes/epoch  %.2f iter/sec' % ((t3-t1)/60, self.steps/(t2-t1)))
 
 
 def filter_signal(x, y, window_length=1000):
@@ -378,43 +386,64 @@ def filter_signal(x, y, window_length=1000):
     return x, y
 
 
-def plot_log(log_dir, names=None, limits=None, window_length=250, log_dir_compare=None):
+def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only=False, autoscale=True):
+    """Plot and compares the training log contained in './checkpoints/'.
     
-    # TODO: differnet batch sizes lead to different epoch length
+    # Agrumets
+        log_dirs: string or list of string with directory names.
+        names: list of strings with metric names in 'log.csv'.
+            None means all.
+        limits: tuple with min and max iteration that should be plotted.
+            None means no limits.
+        window_length: int, window length for signal filter.
+            None means no filtered signal is plotted.
+    
+    # Notes
+        The epoch is inferred from the log with the most iterations.
+        Different batch size leads to different epoch length.
+    """
+    
+    loss_terms = {'loss', 'error'}
+    metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
+    
+    if type(log_dirs) == str:
+        log_dirs = [log_dirs]
+    log_dirs = list(log_dirs)
+    for d in log_dirs:
+        if not os.path.isfile(os.path.join('.', 'checkpoints', d, 'log.csv')):
+            print(d+' not found')
+            log_dirs.remove(d)
     
     if limits is None:
         limits = slice(None)
     elif type(limits) in [list, tuple]:
         limits = slice(*limits)
     
-    print(log_dir)
-    d = pd.read_csv(os.path.join('.', 'checkpoints', log_dir, 'log.csv'))
-    if 'iteration' not in d.keys(): d['iteration'] = np.arange(len(d))
-    d = d[limits]
-    iteration = np.array(d['iteration'])
-    epoch = np.array(d['epoch'])
-    idx = np.argwhere(np.diff(epoch))[:,0] + 1
+    dfs = []
+    max_df = []
+    all_names = set()
+    for d in log_dirs:
+        df = pd.read_csv(os.path.join('.', 'checkpoints', d, 'log.csv'))
+        all_names.update(df.keys())
+        if len(df) > len(max_df):
+            max_df = df
+        if 'iteration' not in df.keys():
+            df['iteration'] = np.arange(1,len(df)+1)
+        df = df[limits]
+        df = {k: np.array(df[k]) for k in df.keys()}
+        dfs.append(df)
     
-    if log_dir_compare is not None:
-        print(log_dir_compare)
-        d2 = pd.read_csv(os.path.join('.', 'checkpoints', log_dir_compare, 'log.csv'))
-        if 'iteration' not in d2.keys(): d2['iteration'] = np.arange(len(d2))
-        d2 = d2[limits]
-        iteration2 = np.array(d2['iteration'])
-        
-    if names is None:
-        names = set(d.keys())
-    else:
-        names = set(names)
-        names.intersection_update(set(d.keys()))
-    if log_dir_compare is not None:
-        names.intersection_update(set(d2.keys()))
-    names.difference_update({'epoch', 'batch', 'iteration', 'time'})
-    print(names)
+    iteration = max_df['iteration']
+    epoch = max_df['epoch']
+    idx = np.argwhere(np.diff(epoch))[:,0]
     
-    if 'time' in d.keys() and len(idx) > 1:
-        t = np.array(d['time'])
+    if 'time' in max_df.keys() and len(idx) > 1:
+        t = max_df['time']
         print('time per epoch %3.1f h' % ((t[idx[1]]-t[idx[0]])/3600))
+    
+    if names is None:
+        print(all_names)
+        names = all_names.difference({'time', 'epoch', 'iteration'})
     
     # reduce epoch ticks
     max_ticks = 20
@@ -438,24 +467,35 @@ def plot_log(log_dir, names=None, limits=None, window_length=250, log_dir_compar
     else:
         idx_red = idx
     
+    colorgen = itertools.cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
+    colors = [next(colorgen) for i in range(len(dfs))]
+    
     for k in names:
         plt.figure(figsize=(16, 8))
-        plt.plot(iteration, d[k], zorder=0)
-        plt.plot(*filter_signal(iteration, d[k], window_length))
-        plt.title(k, y=1.05)
+        xmin, xmax, ymax = 2147483647, 0, 0
+        for i, df in enumerate(dfs):
+            if k in df.keys():
+                if window_length:
+                    plt.plot(*filter_signal(df['iteration'], df[k], window_length), color=colors[i], label=log_dirs[i])
+                    if not filtered_only:
+                        plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], alpha=0.25)
+                else:
+                    plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], label=log_dirs[i])
+                xmin, xmax = min(xmin, df['iteration'][0]), max(xmax, df['iteration'][-1])
+                m = np.isfinite(df[k])
+                ymax = max(ymax, min(np.max(df[k][m]), np.mean(df[k][m])*4))
         
-        # second log
-        if log_dir_compare is not None:
-            plt.plot(iteration2, d2[k], zorder=0)
-            plt.plot(*filter_signal(iteration2, d2[k], window_length))
-            xmin = min(iteration[0], iteration2[0])
-            xmax = max(iteration[-1], iteration2[-1])
-        else:
-            xmin = iteration[0]
-            xmax = iteration[-1]
+        plt.title(k, y=1.05)
+        plt.legend()
         
         ax1 = plt.gca()
         ax1.set_xlim(xmin, xmax)
+        if autoscale:
+            k_split = k.split('_')
+            if len(loss_terms.intersection(k_split)):
+                plt.ylim(0, ymax)
+            elif len(metric_terms.intersection(k_split)):
+                plt.ylim(0, 1)
         ax1.yaxis.grid(True)
         #ax1.set_xlabel('iteration')
         #ax1.set_yscale('linear')
@@ -469,18 +509,6 @@ def plot_log(log_dir, names=None, limits=None, window_length=250, log_dir_compar
         #ax2.set_xlabel('epoch')
         #ax2.set_yscale('linear')
         ax2.get_yaxis().get_major_formatter().set_useOffset(False)
-        
-        k_split = k.split('_')
-        if k_split[0] in ['loss', 'error'] or k_split[-1] in ['loss', 'error']:
-            ymin = 0
-            m = np.isfinite(d[k])
-            ymax = min(np.max(d[k][m]), np.mean(d[k][m])*8)
-            if log_dir_compare is not None:
-                m = np.isfinite(d2[k])
-                ymax = max(ymax, min(np.max(d2[k][m]), np.mean(d2[k][m])*8))
-            ax1.set_ylim(ymin, ymax)
-        if k_split[-1] in ['precision', 'recall', 'fmeasure', 'accuracy']:
-            ax1.set_ylim(0, 1)
         
         plt.show()
 
@@ -554,5 +582,4 @@ class AdamAccumulate(Optimizer):
                   'epsilon': self.epsilon}
         base_config = super(AdamAccumulate, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-
 
