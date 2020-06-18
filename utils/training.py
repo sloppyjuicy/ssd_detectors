@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import tensorflow.keras.backend as K
 import tensorflow as tf
-import time, os, warnings, itertools
+import os, sys, time, warnings, itertools
 
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.optimizers import Optimizer
@@ -511,6 +511,77 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
         ax2.get_yaxis().get_major_formatter().set_useOffset(False)
         
         plt.show()
+
+
+def plot_history(log_dirs, names=None, limits=None, autoscale=True):
+
+    loss_terms = {'loss', 'error'}
+    metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
+    
+    if type(log_dirs) == str:
+        log_dirs = [log_dirs]
+    log_dirs = list(log_dirs)
+    for d in log_dirs:
+        if not os.path.isfile(os.path.join('.', 'checkpoints', d, 'history.csv')):
+            print(d+' not found')
+            log_dirs.remove(d)
+    
+    if limits is None:
+        limits = slice(None)
+    elif type(limits) in [list, tuple]:
+        limits = slice(*limits)
+    
+    dfs = []
+    max_df = []
+    all_names = set()
+    for d in log_dirs:
+        df = pd.read_csv(os.path.join('.', 'checkpoints', d, 'history.csv'))
+        all_names.update(df.keys())
+        if len(df) > len(max_df):
+            max_df = df
+        if 'epoch' not in df.keys():
+            df['epoch'] = np.arange(1,len(df)+1)
+        df = df[limits]
+        df = {k: np.array(df[k]) for k in df.keys()}
+        dfs.append(df)
+    
+    epoch = np.array(max_df['epoch'])
+    
+    if names is None:
+        print(all_names)
+        names = {n for n in all_names if not n.startswith('val_')}
+        names = names.difference({'time', 'epoch'})
+    
+    colorgen = itertools.cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
+    colors = [next(colorgen) for i in range(len(dfs))]
+    
+    for k in names:
+        plt.figure(figsize=(16,4))
+        
+        xmin, xmax = 2147483647, 0
+        ymin, ymax = sys.float_info.max, sys.float_info.min
+        for i, df in enumerate(dfs):
+            if k in df.keys():
+                plt.plot(df['epoch'], df[k], color=colors[i], label=log_dirs[i])
+                ymin, ymax = min(ymin, np.min(df[k])), max(ymax, np.max(df[k]))
+            if 'val_'+k in df.keys():
+                plt.plot(df['epoch'], df['val_'+k], '--', color=colors[i])
+                ymin, ymax = min(ymin, np.max(df['val_'+k])), max(ymax, np.max(df['val_'+k]))
+            xmin, xmax = min(xmin, df['epoch'][0]), max(xmax, df['epoch'][-1])
+        
+        plt.xlim(xmin, xmax)
+        if autoscale:
+            k_split = k.split('_')
+            if len(loss_terms.intersection(k_split)):
+                plt.ylim(0, None)
+            elif len(metric_terms.intersection(k_split)):
+                #plt.ylim(0, 1)
+                plt.ylim(np.floor(ymin*10)/10, np.ceil(ymax*10)/10)
+                #plt.hlines([0.5,0.8,0.9], xmin, xmax, linestyles='-.', linewidth=1)
+        plt.title(k)
+        plt.legend()
+        plt.show()
+
 
 
 class AdamAccumulate(Optimizer):
