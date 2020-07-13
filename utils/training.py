@@ -293,7 +293,6 @@ class MetricUtility():
     def reset(self):
         self.iteration = 0
         self.epoch = 0
-        self.training = True
         self.log = {n: [] for n in self.names}
         self.log.update({'epoch': [], 'time': []})
         self.history = {n: [] for n in self.names}
@@ -314,11 +313,9 @@ class MetricUtility():
         self.metrics_val = {n: Mean() for n in self.names}
         
     def update(self, values, training=True):
-        if self.training and not training:
-            self.t2 = time.time()
-        self.training = training
         float_values = {n: float(v) for n, v in values.items()}
         if training:
+            self.t2 = time.time()
             self.iteration += 1
             self.steps += 1
             for n, v in float_values.items():
@@ -347,8 +344,6 @@ class MetricUtility():
         float_values = {n: float(m.result()) for n, m in self.metrics.items()}
         if self.steps_val > 0:
             float_values.update({'val_'+n: float(m.result()) for n, m in self.metrics_val.items()})
-        else:
-            self.t2 = self.t3
         
         for n, v in float_values.items():
             self.history[n].append(v)
@@ -358,7 +353,7 @@ class MetricUtility():
             self.history['learning_rate'].append(float(self.optimizer.learning_rate))
         
         if self.logdir is not None:
-            float_values = {k:v[-1:] for k, v in self.history.items()}
+            float_values = {k:v[-1:] for k, v in self.history.items() if len(v)}
             df = pd.DataFrame.from_dict(float_values)
             with open(self.history_path, 'a') as f:
                 df.to_csv(f, header=f.tell()==0, index=False)
@@ -366,7 +361,8 @@ class MetricUtility():
         if verbose:
             t1, t2, t3 = self.t1, self.t2, time.time()
             for n, v in self.history.items():
-                print('%s %5.5f ' % (n, v[-1]), end='')
+                if len(v):
+                    print('%s %5.5f ' % (n, v[-1]), end='')
             print('\n%.1f minutes/epoch  %.2f iter/sec' % ((t3-t1)/60, self.steps/(t2-t1)))
 
 
@@ -409,7 +405,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
     if type(log_dirs) == str:
         log_dirs = [log_dirs]
     log_dirs = list(log_dirs)
-    for d in log_dirs:
+    for d in [d for d in log_dirs]:
         if not os.path.isfile(os.path.join('.', 'checkpoints', d, 'log.csv')):
             print(d+' not found')
             log_dirs.remove(d)
@@ -478,12 +474,14 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
                 if window_length:
                     plt.plot(*filter_signal(df['iteration'], df[k], window_length), color=colors[i], label=log_dirs[i])
                     if not filtered_only:
-                        plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], alpha=0.25)
+                        plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], alpha=0.3)
                 else:
                     plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], label=log_dirs[i])
                 xmin, xmax = min(xmin, df['iteration'][0]), max(xmax, df['iteration'][-1])
-                m = np.isfinite(df[k])
-                ymax = max(ymax, min(np.max(df[k][m]), np.mean(df[k][m])*4))
+                if np.all(np.isfinite(df[k])):
+                    ymax = max(ymax, min(np.max(df[k]), np.mean(df[k])*4))
+                else:
+                    print(log_dirs[i]+' NaN or inf')
         
         plt.title(k, y=1.05)
         plt.legend()
@@ -521,7 +519,7 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True):
     if type(log_dirs) == str:
         log_dirs = [log_dirs]
     log_dirs = list(log_dirs)
-    for d in log_dirs:
+    for d in [d for d in log_dirs]:
         if not os.path.isfile(os.path.join('.', 'checkpoints', d, 'history.csv')):
             print(d+' not found')
             log_dirs.remove(d)
@@ -563,10 +561,17 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True):
         for i, df in enumerate(dfs):
             if k in df.keys():
                 plt.plot(df['epoch'], df[k], color=colors[i], label=log_dirs[i])
-                ymin, ymax = min(ymin, np.min(df[k])), max(ymax, np.max(df[k]))
-            if 'val_'+k in df.keys():
-                plt.plot(df['epoch'], df['val_'+k], '--', color=colors[i])
-                ymin, ymax = min(ymin, np.max(df['val_'+k])), max(ymax, np.max(df['val_'+k]))
+                if np.all(np.isfinite(df[k])):
+                    ymin, ymax = min(ymin, np.min(df[k])), max(ymax, np.max(df[k]))
+                else:
+                    print(log_dirs[i]+' NaN or inf')
+            kv = 'val_'+k
+            if kv in df.keys():
+                plt.plot(df['epoch'], df[kv], '--', color=colors[i])
+                if np.all(np.isfinite(df[kv])):
+                    ymin, ymax = min(ymin, np.max(df[kv])), max(ymax, np.max(df[kv]))
+                else:
+                    print(log_dirs[i]+' NaN or inf')
             xmin, xmax = min(xmin, df['epoch'][0]), max(xmax, df['epoch'][-1])
         
         plt.xlim(xmin, xmax)
