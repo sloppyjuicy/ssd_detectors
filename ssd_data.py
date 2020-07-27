@@ -542,16 +542,12 @@ class InputGenerator(object):
                     plt.figure(figsize=(12,6))
                     # origal gt image
                     plt.subplot(121)
-                    dbg_img = np.copy(raw_img)
-                    dbg_img /= 256
-                    dbg_img = dbg_img[:,:,(2,1,0)]
+                    dbg_img = np.copy(img)[:,:,(2,1,0)] / 255
                     plt.imshow(dbg_img)
                     gt_util.plot_gt(raw_y)
                     # network input image
                     plt.subplot(122)
-                    dbg_img = np.copy(img)
-                    dbg_img /= 256
-                    dbg_img = dbg_img[:,:,(2,1,0)]
+                    dbg_img = np.copy(img)[:,:,(2,1,0)] / 255
                     plt.imshow(dbg_img)
                     gt_util.plot_gt(y)
                     plt.show()

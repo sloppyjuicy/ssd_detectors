@@ -1,10 +1,12 @@
 """Some utils for TextBoxes++."""
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from ssd_utils import PriorUtil as SSDPriorUtil
 from ssd_utils import iou, non_maximum_suppression, non_maximum_suppression_slow
-from utils.bboxes import polygon_to_rbox3
+from utils.bboxes import polygon_to_rbox3, rbox3_to_polygon
+from utils.vis import plot_box
 
 
 class PriorUtil(SSDPriorUtil):
@@ -169,3 +171,44 @@ class PriorUtil(SSDPriorUtil):
             results = np.empty((0,6))
         self.results = results
         return results
+
+
+    def plot_results(self, results=None, classes=None, show_labels=False, gt_data=None, confidence_threshold=None):
+        if results is None:
+            results = self.results
+        if confidence_threshold is not None:
+            mask = results[:, 17] > confidence_threshold
+            results = results[mask]
+        if classes is not None:
+            colors = plt.cm.hsv(np.linspace(0, 1, len(classes)+1)).tolist()
+        ax = plt.gca()
+        im = plt.gci()
+        h, w = im.get_size()
+
+        # draw ground truth
+        if gt_data is not None:
+            for box in gt_data:
+                label = np.nonzero(box[4:])[0][0]+1
+                color = 'g' if classes == None else colors[label]
+                xy = np.reshape(box[:8], (-1,2)) * (w,h)
+                ax.add_patch(plt.Polygon(xy, fill=True, color=color, linewidth=1, alpha=0.3))
+
+        # draw prediction
+        for r in results:
+            bbox = r[0:4]
+            quad = r[4:12]
+            rbox = r[12:17]
+            confidence = r[17]
+            label = int(r[18])
+
+            plot_box(bbox*(w,h,w,h), box_format='xyxy', color='b')
+            plot_box(np.reshape(quad,(-1,2))*(w,h), box_format='polygon', color='r')
+            plot_box(rbox3_to_polygon(rbox)*(w,h), box_format='polygon', color='g')
+            plt.plot(rbox[[0,2]]*(w,w), rbox[[1,3]]*(h,h), 'oc', markersize=4)
+            if show_labels:
+                label_name = label if classes == None else classes[label]
+                color = 'r' if classes == None else colors[label]
+                xmin, ymin = bbox[:2]*(w,h)
+                display_txt = '%0.2f, %s' % (confidence, label_name)
+                ax.text(xmin, ymin, display_txt, bbox={'facecolor':color, 'alpha':0.5})
+

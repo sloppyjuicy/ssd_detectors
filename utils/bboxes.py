@@ -69,3 +69,16 @@ def rbox3_to_polygon(rbox):
     dy = -h*np.sin(alpha) / 2.
     xy = np.reshape([x1-dx,y1-dy,x2-dx,y2-dy,x2+dx,y2+dy,x1+dx,y1+dy], (-1,2))
     return xy
+
+def polygon_to_box(xy, box_format='xywh'):
+    # minimum axis aligned bounding box containing some points
+    xy = np.reshape(xy, (-1,2))
+    xmin, ymin = np.min(box, axis=0)
+    xmax, ymax = np.max(box, axis=0)
+    if box_format == 'xywh':
+        box = [xmin, ymin, xmax-xmin, ymax-ymin]
+    elif box_format == 'xyxy':
+        box = [xmin, ymin, xmax, ymax]
+    if box_format == 'polygon':
+        box = [xmin, ymin, xmax, ymin, xmax, ymax, xmin, ymax]
+    return np.array(box)
