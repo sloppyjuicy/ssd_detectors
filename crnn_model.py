@@ -24,33 +24,33 @@ def CRNN(input_shape, num_classes, prediction_only=False, gru=False, cnn=False):
     
     x = image_input = Input(shape=input_shape, name='image_input')
     x = Conv2D(64, (3, 3), strides=(1, 1), activation=act, padding='same', name='conv1_1')(x)
-    x = MaxPool2D(pool_size=(2, 2), strides=(2, 2), name='pool1', padding='same')(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding='same', name='pool1')(x)
     x = Conv2D(128, (3, 3), strides=(1, 1), activation=act, padding='same', name='conv2_1')(x)
-    x = MaxPool2D(pool_size=(2, 2), strides=(2, 2), name='pool2', padding='same')(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding='same', name='pool2')(x)
     x = Conv2D(256, (3, 3), strides=(1, 1), activation=act, padding='same', name='conv3_1')(x)
     x = Conv2D(256, (3, 3), strides=(1, 1), activation=act, padding='same', name='conv3_2')(x)
-    x = MaxPool2D(pool_size=(2, 2), strides=(1, 2), name='pool3', padding='same')(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=(1, 2), padding='same', name='pool3')(x)
     x = Conv2D(512, (3, 3), strides=(1, 1), activation=act, padding='same', name='conv4_1')(x)
     x = BatchNormalization(name='batchnorm1')(x)
     x = Conv2D(512, (3, 3), strides=(1, 1), activation=act, padding='same', name='conv5_1')(x)
     x = BatchNormalization(name='batchnorm2')(x)
-    x = MaxPool2D(pool_size=(2, 2), strides=(1, 2), name='pool5', padding='valid')(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=(1, 2), padding='valid', name='pool5')(x)
     x = Conv2D(512, (2, 2), strides=(1, 1), activation=act, padding='valid', name='conv6_1')(x)
     s = x.shape
-    x = Reshape((s[1],s[3]))(x)
+    x = Reshape((s[1],s[3]), name='reshape_1')(x)
     
     if cnn:
         for i in range(6):
-            x = BatchNormalization()(x)
-            x1 = Conv1D(128, 5, strides=1, dilation_rate=1, padding='same', activation=act)(x)
-            x2 = Conv1D(128, 5, strides=1, dilation_rate=2, padding='same', activation=act)(x)
-            x = concatenate([x1,x2])
+            x = BatchNormalization(name='batch_normalization_%i'%(i+1,))(x)
+            x1 = Conv1D(128, 5, strides=1, dilation_rate=1, padding='same', activation=act, name='conv1d_%i'%(i*2+1,))(x)
+            x2 = Conv1D(128, 5, strides=1, dilation_rate=2, padding='same', activation=act, name='conv1d_%i'%(i*2+2,))(x)
+            x = concatenate([x1,x2], name='concatenate_%i'%(i+1,))
     elif gru:
-        x = Bidirectional(GRU(256, return_sequences=True, reset_after=False))(x)
-        x = Bidirectional(GRU(256, return_sequences=True, reset_after=False))(x)
+        x = Bidirectional(GRU(256, return_sequences=True, reset_after=False), name='bidirectional_1')(x)
+        x = Bidirectional(GRU(256, return_sequences=True, reset_after=False), name='bidirectional_2')(x)
     else:
-        x = Bidirectional(LSTM(256, return_sequences=True))(x)
-        x = Bidirectional(LSTM(256, return_sequences=True))(x)
+        x = Bidirectional(LSTM(256, return_sequences=True), name='bidirectional_1')(x)
+        x = Bidirectional(LSTM(256, return_sequences=True), name='bidirectional_2')(x)
     
     x = Dense(num_classes, name='dense1')(x)
     x = y_pred = Activation('softmax', name='softmax')(x)
