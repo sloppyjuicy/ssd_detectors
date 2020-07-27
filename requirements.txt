@@ -1,0 +1,12 @@
+numpy
+matplotlib
+scipy
+pandas
+jupyter
+tensorflow
+opencv-python
+tqdm
+imageio
+editdistance
+pyclipper
+h5py
