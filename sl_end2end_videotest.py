@@ -24,25 +24,17 @@ if __name__ == '__main__':
     segment_threshold = 0.55
     link_threshold = 0.40
     
-    sl_graph = tf.Graph()
-    with sl_graph.as_default():
-        sl_session = tf.Session()
-        with sl_session.as_default():
-            sl_model = Model(input_shape)
-            prior_util = PriorUtil(sl_model)
-            sl_model.load_weights(weights_path, by_name=True)
+    det_model = Model(input_shape)
+    prior_util = PriorUtil(det_model)
+    det_model.load_weights(weights_path)
     
     #input_width = 256
     input_width = 384
     input_height = 32
     weights_path = './checkpoints/201806190711_crnn_gru_synthtext/weights.300000.h5'
     
-    crnn_graph = tf.Graph()
-    with crnn_graph.as_default():
-        crnn_session = tf.Session()
-        with crnn_session.as_default():
-            crnn_model = CRNN((input_width, input_height, 1), len(alphabet), prediction_only=True, gru=True)
-            crnn_model.load_weights(weights_path, by_name=True)
+    rec_model = CRNN((input_width, input_height, 1), len(alphabet), prediction_only=True, gru=True)
+    rec_model.load_weights(weights_path, by_name=True)
     
     # To test on webcam 0, /dev/video0
     video_path = 0
@@ -81,9 +73,7 @@ if __name__ == '__main__':
                 
             # model to predict 
             x = np.array([preprocess(img, input_size)])
-            with sl_graph.as_default():
-                with sl_session.as_default():
-                    y = sl_model.predict(x)
+            y = det_model.predict(x)
             
             result = prior_util.decode(y[0], segment_threshold, link_threshold)
             
@@ -132,9 +122,7 @@ if __name__ == '__main__':
                 words = np.asarray([w.transpose(1,0,2) for w in words])
                 
                 if len(words) > 0:
-                    with crnn_graph.as_default():
-                        with crnn_session.as_default():
-                            res_crnn = crnn_model.predict(words)
+                    res_crnn = rec_model.predict(words)
                 
                 xy = rboxes[:,:2]
                 xy[:,0] = xy[:,0] - rboxes[:,2] / 2
