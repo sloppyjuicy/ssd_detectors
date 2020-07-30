@@ -48,6 +48,9 @@ class BaseGTUtility(object):
         self.num_samples = len(self.image_names)
         self.num_images = len(self.data)
         self.num_objects = sum(self.stats)
+        
+        if self.num_samples == 0:
+            print('WARNING: empty dataset')
     
     def __str__(self):
         if not hasattr(self, 'stats'):
@@ -111,8 +114,7 @@ class BaseGTUtility(object):
         img = cv2.imread(file_path)
         if preserve_aspect_ratio:
             img = pad_image(img, aspect_ratio)
-        img = img[:, :, (2,1,0)]
-        img = img / 255.
+        img = img[:, :, (2,1,0)] / 255
         return idx, img, self.data[idx]
     
     def sample_random_batch(self, batch_size=32, input_size=(512,512), seed=1337, preserve_aspect_ratio=False):
@@ -154,8 +156,7 @@ class BaseGTUtility(object):
             
             inputs.append(preprocess(img, input_size))
             img = cv2.resize(img, (w,h), cv2.INTER_LINEAR).astype('float32') # should we do resizing
-            img = img[:, :, (2,1,0)] # BGR to RGB
-            img /= 255
+            img = img[:, :, (2,1,0)] / 255 # BGR to RGB
             images.append(img)
             data.append(gt)
         inputs = np.asarray(inputs)
@@ -338,6 +339,7 @@ class InputGenerator(object):
         self.__dict__.update(locals())
         
         self.num_batches = gt_util.num_samples // batch_size
+        self.num_samples = self.num_batches * batch_size
         
         self.color_jitter = []
         if saturation_var:
@@ -482,91 +484,102 @@ class InputGenerator(object):
             new_target = np.asarray(new_target).reshape(-1, target.shape[1])
         return new_img, new_target
     
-    def generate(self, debug=False, encode=True, seed=1337):
+    def get_sample(self, idx, encode=True, debug=False):
         h, w = self.input_size
-        mean = np.array([104,117,123])
-        gt_util = self.gt_util
-        batch_size = self.batch_size
-        num_batches = self.num_batches
-        aspect_ratio = w/h
         
+        img_name = self.gt_util.image_names[idx]
+        img_path = os.path.join(self.gt_util.image_path, img_name)
+        img = cv2.imread(img_path)
+        y = np.copy(self.gt_util.data[idx])
+        
+        if debug:
+            raw_img = img.astype(np.float32)
+            raw_y = np.copy(y)
+        
+        if self.augmentation:
+            if self.do_crop:
+                for _ in range(10): # tries to crop without losing ground truth
+                    img_tmp, y_tmp = self.random_sized_crop(img, y)
+                    if len(y_tmp) > 0:
+                        break
+                if len(y_tmp) > 0:
+                    img = img_tmp
+                    y = y_tmp
+            
+        if self.preserve_aspect_ratio:
+            aspect_ratio = w/h
+            img, y = pad_image(img, aspect_ratio, y)
+
+        img = cv2.resize(img, (w,h), cv2.INTER_LINEAR)
+        img = img.astype(np.float32)
+            
+        if self.augmentation:
+            random.shuffle(self.color_jitter)
+            for jitter in self.color_jitter: # saturation, brightness, contrast
+                img = jitter(img)
+            if self.lighting_std:
+                img = self.lighting(img)
+            if self.hflip_prob > 0:
+                img, y = self.horizontal_flip(img, y, self.hflip_prob)
+            if self.vflip_prob > 0:
+                img, y = self.vertical_flip(img, y, self.vflip_prob)
+            if self.add_noise:
+                img = self.noise(img)
+        
+        if debug:
+            plt.figure(figsize=(12,6))
+            # origal gt image
+            plt.subplot(121)
+            dbg_img = np.copy(raw_img)[:,:,(2,1,0)] / 255
+            plt.imshow(dbg_img)
+            self.gt_util.plot_gt(raw_y)
+            # network input image
+            plt.subplot(122)
+            dbg_img = np.copy(img)[:,:,(2,1,0)] / 255
+            plt.imshow(dbg_img)
+            self.gt_util.plot_gt(y)
+            plt.show()
+        
+        mean = np.array([104,117,123])
+        img -= mean[np.newaxis, np.newaxis, :]
+        #img = img / 25.6
+        
+        if encode:
+            y = self.prior_util.encode(y)
+    
+        return img, y
+    
+    def get_dataset(self, num_parallel_calls=4, seed=1337):
+        import tensorflow as tf
+        
+        if seed is not None:
+            np.random.seed(seed)
+        
+        ds = tf.data.Dataset.range(self.num_samples).repeat(-1).shuffle(self.num_samples)
+        ds = ds.map(lambda x: tf.py_function(self.get_sample, [x,], ['float32', 'float32']), num_parallel_calls=num_parallel_calls)
+        ds = ds.batch(self.batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+        
+        return ds
+    
+    def generate(self, encode=True, debug=False, seed=1337):
         if seed is not None:
             np.random.seed(seed)
         
         inputs, targets = [], []
         
         while True:
-            idxs = np.arange(gt_util.num_samples)
+            idxs = np.arange(self.gt_util.num_samples)
             np.random.shuffle(idxs)
-            idxs = idxs[:num_batches*batch_size]
-            for j, i in enumerate(idxs):
-                img_name = gt_util.image_names[i]
-                img_path = os.path.join(gt_util.image_path, img_name)
-                img = cv2.imread(img_path)
-                y = np.copy(gt_util.data[i])
-                
-                if debug:
-                    raw_img = img.astype(np.float32)
-                    raw_y = np.copy(y)
-                
-                if self.augmentation:
-                    if self.do_crop:
-                        for _ in range(10): # tries to crop without losing ground truth
-                            img_tmp, y_tmp = self.random_sized_crop(img, y)
-                            if len(y_tmp) > 0:
-                                break
-                        if len(y_tmp) > 0:
-                            img = img_tmp
-                            y = y_tmp
-                    
-                if self.preserve_aspect_ratio:
-                    img, y = pad_image(img, aspect_ratio, y)
-
-                img = cv2.resize(img, (w,h), cv2.INTER_LINEAR)
-                img = img.astype(np.float32)
-                    
-                if self.augmentation:
-                    random.shuffle(self.color_jitter)
-                    for jitter in self.color_jitter: # saturation, brightness, contrast
-                        img = jitter(img)
-                    if self.lighting_std:
-                        img = self.lighting(img)
-                    if self.hflip_prob > 0:
-                        img, y = self.horizontal_flip(img, y, self.hflip_prob)
-                    if self.vflip_prob > 0:
-                        img, y = self.vertical_flip(img, y, self.vflip_prob)
-                    if self.add_noise:
-                        img = self.noise(img)
-                
-                if debug:
-                    plt.figure(figsize=(12,6))
-                    # origal gt image
-                    plt.subplot(121)
-                    dbg_img = np.copy(img)[:,:,(2,1,0)] / 255
-                    plt.imshow(dbg_img)
-                    gt_util.plot_gt(raw_y)
-                    # network input image
-                    plt.subplot(122)
-                    dbg_img = np.copy(img)[:,:,(2,1,0)] / 255
-                    plt.imshow(dbg_img)
-                    gt_util.plot_gt(y)
-                    plt.show()
-                
-                img -= mean[np.newaxis, np.newaxis, :]
-                #img = img / 25.6
-                
+            idxs = idxs[:self.num_samples]
+            for j, idx in enumerate(idxs):
+                img, y = self.get_sample(idx, encode=encode, debug=debug)
                 inputs.append(img)
                 targets.append(y)
                 
-                #if len(targets) == batch_size or j == len(idxs)-1: # last batch in epoch can be smaller then batch_size
-                if len(targets) == batch_size:
-                    if encode:
-                        targets = [self.prior_util.encode(y) for y in targets]
-                        targets = np.array(targets, dtype=np.float32)
-                    tmp_inputs = np.array(inputs, dtype=np.float32)
-                    tmp_targets = targets
+                #if len(targets) == self.batch_size or j == len(idxs)-1: # last batch in epoch can be smaller then batch_size
+                if len(targets) == self.batch_size:
+                    yield np.array(inputs, dtype=np.float32), np.array(targets, dtype=np.float32)
                     inputs, targets = [], []
-                    yield tmp_inputs, tmp_targets
                 elif j == len(idxs)-1:
                     # forgett last batch
                     inputs, targets = [], []
@@ -613,7 +626,6 @@ def preprocess(img, size):
         Resized and mean subtracted BGR image.
     """
     h, w = size
-    img = np.copy(img)
     img = cv2.resize(img, (w,h), cv2.INTER_LINEAR)
     img = img.astype(np.float32)
     mean = np.array([104,117,123])
