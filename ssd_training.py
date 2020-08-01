@@ -6,7 +6,6 @@ import tensorflow.keras.backend as K
 import tensorflow as tf
 
 from utils.training import smooth_l1_loss, softmax_loss, focal_loss
-from utils.training import plot_log
 
 
 def compute_metrics(class_true, class_pred, conf, top_k=100):
@@ -63,7 +62,11 @@ class SSDLoss(object):
     def __init__(self, alpha=1.0, neg_pos_ratio=3.0, negatives_for_hard=100.0):
         self.alpha = alpha
         self.neg_pos_ratio = neg_pos_ratio
-        self.metrics = []
+        self.metric_names = [ 'loss',
+                'num_pos', 'num_neg',
+                'pos_conf_loss', 'neg_conf_loss', 'pos_loc_loss',
+                'precision', 'recall', 'fmeasure', 'accuracy',
+            ]
     
     def compute(self, y_true, y_pred):
         # y.shape (batches, priors, 4 x segment_offset + n x class_label)
@@ -119,28 +122,12 @@ class SSDLoss(object):
         loc_loss = pos_loc_loss / (num_pos + eps)
         
         # total loss
-        total_loss = conf_loss + self.alpha * loc_loss
+        loss = conf_loss + self.alpha * loc_loss
         
         # metrics
         precision, recall, accuracy, fmeasure = compute_metrics(class_true, class_pred, conf, top_k=100*batch_size)
         
-        def make_fcn(t):
-            return lambda y_true, y_pred: t
-        for name in ['num_pos', 
-                     'num_neg', 
-                     'pos_conf_loss', 
-                     'neg_conf_loss', 
-                     'pos_loc_loss', 
-                     'precision', 
-                     'recall',
-                     'accuracy',
-                     'fmeasure', 
-                    ]:
-            f = make_fcn(eval(name))
-            f.__name__ = name
-            self.metrics.append(f)
-        
-        return total_loss
+        return eval('{'+' '.join(['"'+n+'": '+n+',' for n in self.metric_names])+'}')
 
 
 class SSDFocalLoss(object):
@@ -149,7 +136,10 @@ class SSDFocalLoss(object):
         self.lambda_conf = lambda_conf
         self.lambda_offsets = lambda_offsets
         self.class_weights = class_weights
-        self.metrics = []
+        self.metric_names = [ 'loss',
+                'conf_loss', 'loc_loss',
+                'precision', 'recall', 'fmeasure', 'accuracy',
+            ]
     
     def compute(self, y_true, y_pred):
         # y.shape (batches, priors, 4 x bbox_offset + n x class_label)
@@ -177,7 +167,6 @@ class SSDFocalLoss(object):
         
         conf_loss = focal_loss(conf_true, conf_pred, alpha=self.class_weights)
         conf_loss = tf.reduce_sum(conf_loss)
-        
         conf_loss = conf_loss / (num_total + eps)
         
         # offset loss
@@ -186,28 +175,13 @@ class SSDFocalLoss(object):
         
         loc_loss = smooth_l1_loss(loc_true, loc_pred)
         pos_loc_loss = tf.reduce_sum(loc_loss * pos_mask_float) # only for positive ground truth
-        
         loc_loss = pos_loc_loss / (num_pos + eps)
         
         # total loss
-        total_loss = self.lambda_conf * conf_loss + self.lambda_offsets * loc_loss
+        loss = self.lambda_conf * conf_loss + self.lambda_offsets * loc_loss
         
         # metrics
         precision, recall, accuracy, fmeasure = compute_metrics(class_true, class_pred, conf, top_k=100*batch_size)
         
-        def make_fcn(t):
-            return lambda y_true, y_pred: t
-        for name in ['conf_loss', 
-                     'loc_loss', 
-                     'precision', 
-                     'recall',
-                     'accuracy',
-                     'fmeasure', 
-                    ]:
-            f = make_fcn(eval(name))
-            f.__name__ = name
-            self.metrics.append(f)
-        
-        return total_loss
-
+        return eval('{'+' '.join(['"'+n+'": '+n+',' for n in self.metric_names])+'}')
 

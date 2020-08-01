@@ -11,7 +11,12 @@ class TBPPFocalLoss(object):
     def __init__(self, lambda_conf=1000.0, lambda_offsets=1.0):
         self.lambda_conf = lambda_conf
         self.lambda_offsets = lambda_offsets
-        self.metrics = []
+        
+        self.metric_names = [ 'loss',
+                'conf_loss', 'loc_loss',
+                'precision', 'recall', 'fmeasure', 'accuracy',
+                'num_pos', 'num_neg'
+            ]
     
     def compute(self, y_true, y_pred):
         # y.shape (batches, priors, 4 x bbox_offset + 8 x quadrilaterals + 5 x rbbox_offsets + n x class_label)
@@ -40,7 +45,6 @@ class TBPPFocalLoss(object):
         conf_loss = focal_loss(conf_true, conf_pred, alpha=[0.002, 0.998])
         conf_loss = tf.reduce_sum(conf_loss)
         conf_loss = conf_loss / (num_total + eps)
-        conf_loss = self.lambda_conf * conf_loss
         
         # offset loss, bbox, quadrilaterals, rbbox
         loc_true = tf.reshape(y_true[:,:,0:17], [-1, 17])
@@ -49,27 +53,11 @@ class TBPPFocalLoss(object):
         loc_loss = smooth_l1_loss(loc_true, loc_pred)
         pos_loc_loss = tf.reduce_sum(loc_loss * pos_mask_float) # only for positives
         loc_loss = pos_loc_loss / (num_pos + eps)
-        loc_loss = self.lambda_offsets * loc_loss
         
         # total loss
-        total_loss = conf_loss + loc_loss
-        
-        # metrics
+        loss = self.lambda_conf * conf_loss + self.lambda_offsets * loc_loss
+
         precision, recall, accuracy, fmeasure = compute_metrics(class_true, class_pred, conf, top_k=100*batch_size)
         
-        def make_fcn(t):
-            return lambda y_true, y_pred: t
-        for name in ['conf_loss', 
-                     'loc_loss', 
-                     'precision', 
-                     'recall',
-                     'accuracy',
-                     'fmeasure', 
-                     'num_pos',
-                     'num_neg'
-                    ]:
-            f = make_fcn(eval(name))
-            f.__name__ = name
-            self.metrics.append(f)
-        
-        return total_loss
+        return eval('{'+' '.join(['"'+n+'": '+n+',' for n in self.metric_names])+'}')
+
