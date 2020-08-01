@@ -483,33 +483,36 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
                 else:
                     print(log_dirs[i]+' NaN or inf')
         
-        plt.title(k, y=1.05)
-        plt.legend()
-        
-        ax1 = plt.gca()
-        ax1.set_xlim(xmin, xmax)
-        if autoscale:
-            k_split = k.split('_')
-            if len(loss_terms.intersection(k_split)):
-                plt.ylim(0, ymax)
-            elif len(metric_terms.intersection(k_split)):
-                plt.ylim(0, 1)
-        ax1.yaxis.grid(True)
-        #ax1.set_xlabel('iteration')
-        #ax1.set_yscale('linear')
-        ax1.get_yaxis().get_major_formatter().set_useOffset(False)
-        
-        ax2 = ax1.twiny()
-        ax2.xaxis.grid(True)
-        ax2.set_xticks(iteration[idx_red])
-        ax2.set_xticklabels(epoch[idx_red])
-        ax2.set_xlim(xmin, xmax)
-        #ax2.set_xlabel('epoch')
-        #ax2.set_yscale('linear')
-        ax2.get_yaxis().get_major_formatter().set_useOffset(False)
-        
-        plt.show()
-
+        if ymax > 0:
+            plt.title(k, y=1.05)
+            plt.legend()
+            
+            ax1 = plt.gca()
+            ax1.set_xlim(xmin, xmax)
+            if autoscale:
+                k_split = k.split('_')
+                if len(loss_terms.intersection(k_split)):
+                    plt.ylim(0, ymax)
+                elif len(metric_terms.intersection(k_split)):
+                    plt.ylim(0, 1)
+            ax1.yaxis.grid(True)
+            #ax1.set_xlabel('iteration')
+            #ax1.set_yscale('linear')
+            ax1.get_yaxis().get_major_formatter().set_useOffset(False)
+            
+            ax2 = ax1.twiny()
+            ax2.xaxis.grid(True)
+            ax2.set_xticks(iteration[idx_red])
+            ax2.set_xticklabels(epoch[idx_red])
+            ax2.set_xlim(xmin, xmax)
+            #ax2.set_xlabel('epoch')
+            #ax2.set_yscale('linear')
+            ax2.get_yaxis().get_major_formatter().set_useOffset(False)
+            
+            plt.show()
+        else:
+            #print(k+' no values')
+            plt.close()
 
 def plot_history(log_dirs, names=None, limits=None, autoscale=True):
 
@@ -574,19 +577,22 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True):
                     print(log_dirs[i]+' NaN or inf')
             xmin, xmax = min(xmin, df['epoch'][0]), max(xmax, df['epoch'][-1])
         
-        plt.xlim(xmin, xmax)
-        if autoscale:
-            k_split = k.split('_')
-            if len(loss_terms.intersection(k_split)):
-                plt.ylim(0, None)
-            elif len(metric_terms.intersection(k_split)):
-                #plt.ylim(0, 1)
-                plt.ylim(np.floor(ymin*10)/10, np.ceil(ymax*10)/10)
-                #plt.hlines([0.5,0.8,0.9], xmin, xmax, linestyles='-.', linewidth=1)
-        plt.title(k)
-        plt.legend()
-        plt.show()
-
+        if ymax > sys.float_info.min:
+            plt.xlim(xmin, xmax)
+            if autoscale:
+                k_split = k.split('_')
+                if len(loss_terms.intersection(k_split)):
+                    plt.ylim(0, None)
+                elif len(metric_terms.intersection(k_split)):
+                    #plt.ylim(0, 1)
+                    plt.ylim(np.floor(ymin*10)/10, np.ceil(ymax*10)/10)
+                    #plt.hlines([0.5,0.8,0.9], xmin, xmax, linestyles='-.', linewidth=1)
+            plt.title(k)
+            plt.legend()
+            plt.show()
+        else:
+            #print(k+' no values')
+            plt.close()
 
 
 class AdamAccumulate(Optimizer):

@@ -400,7 +400,7 @@ class PriorUtil(object):
         self.priors_norm = np.concatenate([self.priors_min_xy_norm, self.priors_max_xy_norm, self.priors_variances], axis=1)
     
     
-    def encode(self, gt_data, overlap_threshold=0.5, debug=False):
+    def encode(self, gt_data, overlap_threshold=0.45, debug=False):
         # calculation is done with normalized sizes
         
         # TODO: empty ground truth

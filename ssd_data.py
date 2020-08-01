@@ -549,14 +549,14 @@ class InputGenerator(object):
     
         return img, y
     
-    def get_dataset(self, num_parallel_calls=4, seed=1337):
+    def get_dataset(self, num_parallel_calls=1, seed=1337):
         import tensorflow as tf
         
         if seed is not None:
             np.random.seed(seed)
         
         ds = tf.data.Dataset.range(self.num_samples).repeat(-1).shuffle(self.num_samples)
-        ds = ds.map(lambda x: tf.py_function(self.get_sample, [x,], ['float32', 'float32']), num_parallel_calls=num_parallel_calls)
+        ds = ds.map(lambda x: tf.py_function(self.get_sample, [x,], ['float32', 'float32']), num_parallel_calls=num_parallel_calls, deterministic=False)
         ds = ds.batch(self.batch_size).prefetch(tf.data.experimental.AUTOTUNE)
         
         return ds

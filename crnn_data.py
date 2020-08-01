@@ -9,7 +9,7 @@ from utils.bboxes import polygon_to_rbox
 def crop_words(img, boxes, height, width=None, grayscale=True):
     """
     
-    # Note
+    # Notes
         make sure that the vertices of all boxes are inside the image
     """
     

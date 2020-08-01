@@ -158,9 +158,7 @@ def SL384x512_dense(input_shape=(384,512,3), activation='relu'):
 
 def SL512_resnet(input_shape=(512, 512, 3), activation='relu', softmax=True):
     
-    # TODO: it does not converge!
-    
-    # DSOD body
+    # body
     x = input_tensor = Input(shape=input_shape)
     source_layers = ssd512_resnet_body(x, activation=activation)
     

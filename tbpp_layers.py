@@ -7,11 +7,19 @@ from tensorflow.keras.layers import Layer
 
 
 class TBPPDecodeAndCrop(Layer):
-    # NOTES
-    # requires tensorflow-addons
-    # does not work with changing image size
-    # limited to one class
-    # provieds grayscale images to the recogition stage
+    """Layer for decoding TextBoxes++ output and cropping the detected text instances from the input image.
+    
+    # Arguments
+        prior_util: instance of TextBoxes++ PriorUtility
+        confidence_threshold, iou_threshold, top_k: same arguments as those that would be passed to the decoder method of PriorUtility
+        output_size: tuple, output size of the padded text instances, (32, 256) by default
+    
+    # Notes
+        requires tensorflow-addons
+        does not work with changing image size
+        limited to one class
+        provieds grayscale images to the recogition stage
+    """
     
     def __init__(self, prior_util, confidence_threshold=0.01, iou_threshold=0.45, top_k=200, output_size=(32, 256), **kwargs):
         self.prior_util = prior_util
