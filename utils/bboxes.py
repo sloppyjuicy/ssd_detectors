@@ -73,8 +73,8 @@ def rbox3_to_polygon(rbox):
 def polygon_to_box(xy, box_format='xywh'):
     # minimum axis aligned bounding box containing some points
     xy = np.reshape(xy, (-1,2))
-    xmin, ymin = np.min(box, axis=0)
-    xmax, ymax = np.max(box, axis=0)
+    xmin, ymin = np.min(xy, axis=0)
+    xmax, ymax = np.max(xy, axis=0)
     if box_format == 'xywh':
         box = [xmin, ymin, xmax-xmin, ymax-ymin]
     elif box_format == 'xyxy':
@@ -82,3 +82,33 @@ def polygon_to_box(xy, box_format='xywh'):
     if box_format == 'polygon':
         box = [xmin, ymin, xmax, ymin, xmax, ymax, xmin, ymax]
     return np.array(box)
+
+
+def iou(box, boxes):
+    """Computes the intersection over union for a given axis 
+    aligned bounding box with several others.
+
+    # Arguments
+        box: Bounding box, numpy array of shape (4).
+            (x1, y1, x2, y2)
+        boxes: Reference bounding boxes, numpy array of 
+            shape (num_boxes, 4).
+
+    # Return
+        iou: Intersection over union,
+            numpy array of shape (num_boxes).
+    """
+    # compute intersection
+    inter_upleft = np.maximum(boxes[:, :2], box[:2])
+    inter_botright = np.minimum(boxes[:, 2:4], box[2:])
+    inter_wh = inter_botright - inter_upleft
+    inter_wh = np.maximum(inter_wh, 0)
+    inter = inter_wh[:, 0] * inter_wh[:, 1]
+    # compute union
+    area_pred = (box[2] - box[0]) * (box[3] - box[1])
+    area_gt = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+    union = area_pred + area_gt - inter
+    # compute iou
+    iou = inter / union
+    return iou
+
