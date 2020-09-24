@@ -114,6 +114,81 @@ def reduced_focal_loss(y_true, y_pred, gamma=2., alpha=1., th=0.5):
     return tf.reduce_sum(loss, axis=-1)
 
 
+def ciou_loss(y_true, y_pred):
+    '''Conpute Distance-IoU loss.
+    
+    # Notes
+        takes in a list of bounding boxes
+        but can work for a single bounding box too
+        all the boundary cases such as bounding boxes of size 0 are handled.
+    
+    # References
+        [Distance-IoU Loss: Faster and Better Learning for Bounding Box Regression](https://arxiv.org/abs/1911.08287)
+    
+    # Source
+        https://github.com/notabee/Distance-IoU-Loss-Faster-and-Better-Learning-for-Bounding-Box-Regression/blob/master/ciou.py
+    '''
+    mask = tf.cast(y_true != 0, dtype='float32')
+    y_true = y_true * mask
+    y_pred = y_pred * mask
+
+    x1g, y1g, x2g, y2g = tf.unstack(y_true, axis=-1)
+    x1, y1, x2, y2 = tf.unstack(y_pred, axis=-1)
+    
+    w_pred = x2 - x1
+    h_pred = y2 - y1
+    w_gt = x2g - x1g
+    h_gt = y2g - y1g
+
+    x_center = (x2 + x1) / 2
+    y_center = (y2 + y1) / 2
+    x_center_g = (x1g + x2g) / 2
+    y_center_g = (y1g + y2g) / 2
+
+    xc1 = tf.minimum(x1, x1g)
+    yc1 = tf.minimum(y1, y1g)
+    xc2 = tf.maximum(x2, x2g)
+    yc2 = tf.maximum(y2, y2g)
+    
+    # iou
+    xA = tf.maximum(x1g, x1)
+    yA = tf.maximum(y1g, y1)
+    xB = tf.minimum(x2g, x2)
+    yB = tf.minimum(y2g, y2)
+
+    interArea = tf.maximum(0.0, (xB - xA + 1)) * tf.maximum(0.0, yB - yA + 1)
+
+    boxAArea = (x2g - x1g +1) * (y2g - y1g +1)
+    boxBArea = (x2 - x1 +1) * (y2 - y1 +1)
+
+    iouk = interArea / (boxAArea + boxBArea - interArea + 1e-10)
+    
+    # distance
+    c = ((xc2 - xc1) ** 2) + ((yc2 - yc1) ** 2)
+    d = ((x_center - x_center_g) ** 2) + ((y_center - y_center_g) ** 2)
+    u = d / (c + 1e-7)
+
+    # aspect-ratio
+    arctan = tf.atan(w_gt/(h_gt + 1e-10))-tf.atan(w_pred/(h_pred + 1e-10))
+    v = (4 / (np.pi ** 2)) * tf.pow((tf.atan(w_gt/(h_gt + 1e-10))-tf.atan(w_pred/(h_pred + 1e-10))),2)
+    S = 1 - iouk
+    alpha = v / (S + v + 1e-10)
+    w_temp = 2 * w_pred
+    ar = (8 / (np.pi ** 2)) * arctan * ((w_pred - w_temp) * h_pred)
+    
+    # calculate diou
+    diouk = 1-iouk + u
+    
+    # calculate ciou
+    #ciouk = 1-iouk + u + alpha*ar
+    
+    # "I found that -log(IoU) is more stable and converge faster than (1-IoU)"
+    #ciouk = -tf.math.log(iouk) + u + alpha*ar
+    
+    return diouk
+    #return ciouk
+
+
 class LearningRateDecay(Callback):
     def __init__(self, methode='linear', base_lr=1e-3, n_desired=40000, desired=0.1, bias=0.0, minimum=0.1):
         super(LearningRateDecay, self).__init__()
@@ -600,6 +675,7 @@ class AdamAccumulate(Optimizer):
     than the physical batch size.
 
     Default parameters follow those provided in the original paper.
+    Only works with TensorFlow 1.x!
 
     # Arguments
         lr: float >= 0. Learning rate.
