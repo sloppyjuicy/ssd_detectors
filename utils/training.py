@@ -23,20 +23,35 @@ def smooth_l1_loss(y_true, y_pred):
     """Compute L1-smooth loss.
 
     # Arguments
-        y_true: Ground truth bounding boxes,
-            tensor of shape (?, num_boxes, 4).
-        y_pred: Predicted bounding boxes,
-            tensor of shape (?, num_boxes, 4).
+        y_true: Ground truth, tensor of shape (..., n)
+        y_pred: Prediction, tensor of shape (..., n)
 
     # Returns
-        l1_loss: L1-smooth loss, tensor of shape (?, num_boxes).
+        loss: Smooth L1-smooth loss, tensor of shape (...)
 
     # References
-        https://arxiv.org/abs/1504.08083
+        [Fast R-CNN](https://arxiv.org/abs/1504.08083)
     """
     abs_loss = tf.abs(y_true - y_pred)
     sq_loss = 0.5 * (y_true - y_pred)**2
     loss = tf.where(tf.less(abs_loss, 1.0), sq_loss, abs_loss - 0.5)
+    return tf.reduce_sum(loss, axis=-1)
+
+def shrinkage_loss(y_true, y_pred, a=10.0, c=0.2):
+    """Compute Shrikage Loss.
+
+    # Arguments
+        y_true: Ground truth, tensor of shape (..., n)
+        y_pred: Prediction, tensor of shape (..., n)
+
+    # Returns
+        loss: Smooth L1-smooth loss, tensor of shape (...)
+
+    # References
+        [Deep Regression Tracking with Shrinkage Loss](https://www.ecva.net/papers/eccv_2018/papers_ECCV/papers/Xiankai_Lu_Deep_Regression_Tracking_ECCV_2018_paper.pdf)
+    """
+    l = tf.abs(y_true - y_pred)
+    loss = tf.square(l) / (1 + tf.exp(a*(c-l)))
     return tf.reduce_sum(loss, axis=-1)
 
 def softmax_loss(y_true, y_pred):
@@ -49,7 +64,8 @@ def softmax_loss(y_true, y_pred):
             tensor of shape (?, num_boxes, num_classes).
 
     # Returns
-        softmax_loss: Softmax loss, tensor of shape (?, num_boxes).
+        loss: Softmax loss, tensor of shape (...)
+
     """
     eps = K.epsilon()
     y_pred = K.clip(y_pred, eps, 1.-eps)
@@ -68,16 +84,14 @@ def focal_loss(y_true, y_pred, gamma=2., alpha=1.):
     """Compute binary focal loss.
     
     # Arguments
-        y_true: Ground truth targets,
-            tensor of shape (?, num_boxes, num_classes).
-        y_pred: Predicted logits,
-            tensor of shape (?, num_boxes, num_classes).
+        y_true: Ground truth, tensor of shape (..., n)
+        y_pred: Prediction, tensor of shape (..., n).
     
     # Returns
-        focal_loss: Focal loss, tensor of shape (?, num_boxes).
+        loss: Focal loss, tensor of shape (...)
 
     # References
-        https://arxiv.org/abs/1708.02002
+        [Focal Loss for Dense Object Detection](https://arxiv.org/abs/1708.02002)
     """
     eps = K.epsilon()
     #y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
@@ -93,16 +107,14 @@ def reduced_focal_loss(y_true, y_pred, gamma=2., alpha=1., th=0.5):
     """Compute binary reduced focal loss.
     
     # Arguments
-        y_true: Ground truth targets,
-            tensor of shape (?, num_boxes, num_classes).
-        y_pred: Predicted logits,
-            tensor of shape (?, num_boxes, num_classes).
-    
+        y_true: Ground truth, tensor of shape (..., n)
+        y_pred: Prediction, tensor of shape (..., n)
+
     # Returns
-        reduced_focal_loss: Reduced focal loss, tensor of shape (?, num_boxes).
+        loss: Reduced focal loss, tensor of shape (...)
 
     # References
-        https://arxiv.org/abs/1903.01347
+        [Reduced Focal Loss: 1st Place Solution to xView object detection in Satellite Imagery](https://arxiv.org/abs/1903.01347)
     """
     eps = K.epsilon()
     #y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
@@ -116,11 +128,19 @@ def reduced_focal_loss(y_true, y_pred, gamma=2., alpha=1., th=0.5):
 
 def ciou_loss(y_true, y_pred):
     '''Conpute Distance-IoU loss.
-    
+
+    # Arguments
+        y_true: Ground truth bounding boxes, tensor of shape (..., 4)
+        y_pred: Predicted bounding boxes, tensor of shape (..., 4)
+
+    # Returns
+        loss: Distance-IoU loss, tensor of shape (...)
+
     # Notes
         takes in a list of bounding boxes
         but can work for a single bounding box too
-        all the boundary cases such as bounding boxes of size 0 are handled.
+        bounding boxes are specified with (x_min, y_min, x_max, y_max)
+        all the boundary cases such as bounding boxes of size 0 are handled
     
     # References
         [Distance-IoU Loss: Faster and Better Learning for Bounding Box Regression](https://arxiv.org/abs/1911.08287)
@@ -674,8 +694,9 @@ class AdamAccumulate(Optimizer):
     """Adam optimizer with accumulated gradients for having a virtual batch size larger 
     than the physical batch size.
 
-    Default parameters follow those provided in the original paper.
-    Only works with TensorFlow 1.x!
+    # Notes
+        Default parameters follow those provided in the original paper.
+        Only works with TensorFlow 1.x!
 
     # Arguments
         lr: float >= 0. Learning rate.
