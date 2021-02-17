@@ -6,90 +6,9 @@ import cv2
 
 from tqdm import tqdm
 
-from utils.bboxes import iou
+from utils.bboxes import iou, non_maximum_suppression_slow, non_maximum_suppression
 from utils.model import load_weights, calc_memory_usage, count_parameters, plot_parameter_statistic, calc_receptive_field
 from utils.vis import to_rec
-
-
-def non_maximum_suppression_slow(boxes, confs, iou_threshold, top_k):
-    """Does None-Maximum Suppresion on detection results.
-    
-    Intuitive but slow as hell!!!
-    
-    # Agruments
-        boxes: Array of bounding boxes (boxes, xmin + ymin + xmax + ymax).
-        confs: Array of corresponding confidenc values.
-        iou_threshold: Intersection over union threshold used for comparing 
-            overlapping boxes.
-        top_k: Maximum number of returned indices.
-    
-    # Return
-        List of remaining indices.
-    """
-    idxs = np.argsort(-confs)
-    selected = []
-    for idx in idxs:
-        if np.any(iou(boxes[idx], boxes[selected]) >= iou_threshold):
-            continue
-        selected.append(idx)
-        if len(selected) >= top_k:
-            break
-    return selected
-
-def non_maximum_suppression(boxes, confs, overlap_threshold, top_k):
-    """Does None-Maximum Suppresion on detection results.
-    
-    # Agruments
-        boxes: Array of bounding boxes (boxes, xmin + ymin + xmax + ymax).
-        confs: Array of corresponding confidenc values.
-        overlap_threshold: 
-        top_k: Maximum number of returned indices.
-    
-    # Return
-        List of remaining indices.
-    
-    # References
-        - Girshick, R. B. and Felzenszwalb, P. F. and McAllester, D.
-          [Discriminatively Trained Deformable Part Models, Release 5](http://people.cs.uchicago.edu/~rbg/latent-release5/)
-    """
-    eps = 1e-15
-    
-    boxes = boxes.astype(np.float64)
-
-    pick = []
-    x1, y1, x2, y2 = boxes.T
-    
-    idxs = np.argsort(confs)
-    area = (x2 - x1) * (y2 - y1)
-    
-    while len(idxs) > 0:
-        i = idxs[-1]
-        
-        pick.append(i)
-        if len(pick) >= top_k:
-            break
-        
-        idxs = idxs[:-1]
-        
-        xx1 = np.maximum(x1[i], x1[idxs])
-        yy1 = np.maximum(y1[i], y1[idxs])
-        xx2 = np.minimum(x2[i], x2[idxs])
-        yy2 = np.minimum(y2[i], y2[idxs])
-        
-        w = np.maximum(0, xx2 - xx1)
-        h = np.maximum(0, yy2 - yy1)
-        I = w * h 
-        
-        overlap = I / (area[idxs] + eps)
-        # as in Girshick et. al.
-        
-        #U = area[idxs] + area[i] - I
-        #overlap = I / (U + eps)
-        
-        idxs = idxs[overlap <= overlap_threshold]
-        
-    return pick
-
 
 
 class PriorMap(object):
