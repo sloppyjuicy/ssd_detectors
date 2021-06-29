@@ -79,14 +79,14 @@ class Generator(object):
     
     def horizontal_flip(self, img, y):
         if np.random.random() < self.hflip_prob:
-            img = img[:, ::-1]
-            y[:, [0, 2]] = 1 - y[:, [2, 0]]
+            img = img[:,::-1]
+            y[:,(0,2)] = 1 - y[:,(2,0)]
         return img, y
     
     def vertical_flip(self, img, y):
         if np.random.random() < self.vflip_prob:
-            img = img[::-1]
-            y[:, [1, 3]] = 1 - y[:, [3, 1]]
+            img = img[::-1,:]
+            y[:,(1,3)] = 1 - y[:,(3,1)]
         return img, y
     
     def random_sized_crop(self, img, targets):

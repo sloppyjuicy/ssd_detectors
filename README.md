@@ -1,7 +1,7 @@
 # SSD-based object and text detection with Keras
 This repository contains the implementation of various approaches to object detection in general and text detection/recognition in particular.
 
-Its code was initially used to carry out the experiments for the author's master thesis [End-to-End Scene Text Recognition based on Artificial Neural Networks](http://83.169.39.135/thesis/thesis.pdf) and later extended with the implementation of more recent approaches.
+Its code was initially used to carry out the experiments for the author's master thesis [End-to-End Scene Text Recognition based on Artificial Neural Networks](http://46.163.79.21/thesis/thesis.pdf) and later extended with the implementation of more recent approaches.
 
 ## Technical background
 
@@ -60,19 +60,19 @@ The usage of the code is quite straightforward, clone the repository and run the
 ## Pretrained models
 Pretrained SSD models can be converted from the [original Caffe implementation](https://github.com/weiliu89/caffe/tree/ssd).
 
-#### [Converted SSD300 VOC](http://83.169.39.135/ssd_detectors/ssd300_voc_weights_fixed.zip)
+#### [Converted SSD300 VOC](http://46.163.79.21/ssd_detectors/ssd300_voc_weights_fixed.zip)
 PASCAL VOC 07+12+COCO SSD300* from Caffe implementation
 
-#### [Converted SSD512 VOC](http://83.169.39.135/ssd_detectors/ssd512_voc_weights_fixed.zip)
+#### [Converted SSD512 VOC](http://46.163.79.21/ssd_detectors/ssd512_voc_weights_fixed.zip)
 PASCAL VOC 07+12+COCO SSD512* from Caffe implementation
 
-#### [Converted SSD300 COCO](http://83.169.39.135/ssd_detectors/ssd300_coco_weights_fixed.zip)
+#### [Converted SSD300 COCO](http://46.163.79.21/ssd_detectors/ssd300_coco_weights_fixed.zip)
 COCO trainval35k SSD300* from Caffe implementation
 
-#### [Converted SSD512 COCO](http://83.169.39.135/ssd_detectors/ssd512_coco_weights_fixed.zip)
+#### [Converted SSD512 COCO](http://46.163.79.21/ssd_detectors/ssd512_coco_weights_fixed.zip)
 COCO trainval35k SSD512* from Caffe implementation
 
-#### [SegLink](http://83.169.39.135/ssd_detectors/201809231008_sl512_synthtext.zip)
+#### [SegLink](http://46.163.79.21/ssd_detectors/201809231008_sl512_synthtext.zip)
 initialized with converted SSD512 weights  
 trained and tested on subsets of SynthText  
 segment_threshold  0.60  
@@ -83,7 +83,7 @@ f-measure         0.869
 parameters   24,358,681  
 model size        94 MB  
 
-#### [SegLink with DSOD backbone and Focal Loss](http://83.169.39.135/ssd_detectors/201806021007_dsodsl512_synthtext.zip)
+#### [SegLink with DSOD backbone and Focal Loss](http://46.163.79.21/ssd_detectors/201806021007_dsodsl512_synthtext.zip)
 trained and tested on subsets of SynthText  
 segment_threshold  0.60  
 link_threshold     0.50  
@@ -93,7 +93,7 @@ f-measure         0.932
 parameters   12,905,177  
 model size        50 MB  
 
-#### [TextBoxes++ with DSOD backbone and Focal Loss](http://83.169.39.135/ssd_detectors/201906190710_dsodtbpp512fl_synthtext.zip)
+#### [TextBoxes++ with DSOD backbone and Focal Loss](http://46.163.79.21/ssd_detectors/201906190710_dsodtbpp512fl_synthtext.zip)
 trained and tested on subsets of SynthText  
 threshold          0.35  
 precision         0.984  
@@ -102,7 +102,7 @@ f-measure         0.934
 parameters   23,477,798  
 model size        91 MB  
 
-#### [TextBoxes++ with dense blocks, separable convolution and Focal Loss](http://83.169.39.135/ssd_detectors/202003070004_dstbpp512fl_synthtext.zip)
+#### [TextBoxes++ with dense blocks, separable convolution and Focal Loss](http://46.163.79.21/ssd_detectors/202003070004_dstbpp512fl_synthtext.zip)
 the number of parameters has been reduced by ≈ 0.94% compared to the original TextBoxes++ with VGG backbone (35,763,078 parameters)  
 trained and tested on subsets of SynthText  
 threshold          0.45  
@@ -113,7 +113,7 @@ parameters    2,226,374
 model size         9 MB  
 
 
-#### [CRNN with LSTM](http://83.169.39.135/ssd_detectors/201806162129_crnn_lstm_synthtext.zip)
+#### [CRNN with LSTM](http://46.163.79.21/ssd_detectors/201806162129_crnn_lstm_synthtext.zip)
 trained and tested on cropped word level bounding boxes form SynthText  
 mean editdistance             0.332  
 mean normalized editdistance  0.081  
@@ -124,7 +124,7 @@ parameters                8,747,351
 model size                    34 MB  
 runtime (GPU)      114 ms ± 2.75 ms  
 
-#### [CRNN with GRU](http://83.169.39.135/ssd_detectors/201806190711_crnn_gru_synthtext.zip)
+#### [CRNN with GRU](http://46.163.79.21/ssd_detectors/201806190711_crnn_gru_synthtext.zip)
 trained and tested on cropped word level bounding boxes form SynthText  
 mean editdistance             0.333  
 mean normalized editdistance  0.081  
@@ -135,7 +135,7 @@ parameters                7,959,895
 model size                    31 MB  
 runtime (GPU)     85.1 ms ± 1.19 ms  
 
-#### [CRNN with CNN](http://83.169.39.135/ssd_detectors/202001131747_crnn_cnn_synthtext.zip)
+#### [CRNN with CNN](http://46.163.79.21/ssd_detectors/202001131747_crnn_cnn_synthtext.zip)
 fully convolutional architecture for the recognition stage (probably not optimal)  
 trained and tested on cropped word level bounding boxes form SynthText  
 mean editdistance             0.355  
@@ -147,7 +147,7 @@ parameters                7,877,719
 model size                    31 MB  
 runtime (GPU)     3.68 ms ± 24.5 µs  
 
-#### [CRNN with CNN concat](http://83.169.39.135/ssd_detectors/202002030820_crnn_cnn_synthtext_concat_continued.zip)
+#### [CRNN with CNN concat](http://46.163.79.21/ssd_detectors/202002030820_crnn_cnn_synthtext_concat_continued.zip)
 fine-tuned fully convolutional model on concatenated word images form SynthText  
 <img src="./images/crnn_input_concat1.jpg" />
 mean editdistance             1.842  
@@ -193,5 +193,5 @@ iterations                600k+100k
 </p>
 
 #### SegLink with DenseNet, Focal Loss and CRNN end-to-end real-time recogniton
-[<img src="./images/dsodslcrnn_end2end_record_preview.jpg" width="768" />](http://83.169.39.135/ssd_detectors/dsodslcrnn_end2end_record.mp4)
+[<img src="./images/dsodslcrnn_end2end_record_preview.jpg" width="768" />](http://46.163.79.21/ssd_detectors/dsodslcrnn_end2end_record.mp4)
 

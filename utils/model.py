@@ -122,7 +122,16 @@ def plot_parameter_statistic(model, layer_types=['Dense', 'Conv2D'], trainable=T
         offset += np.array(counts_non_trainable, dtype=int)
         legend.append('non-trainable')
     if outputs:
-        counts_outputs = [np.sum([np.sum([np.prod(s[1:]) for s in n.output_shapes]) for n in l._inbound_nodes]) for l in layers]
+        #counts_outputs = [np.sum([np.sum([np.prod(s[1:]) for s in n.output_shapes]) for n in l._inbound_nodes]) for l in layers]
+        counts_outputs = []
+        for l in layers:
+            shapes = []
+            for n in l._inbound_nodes:
+                if type(n.output_shapes) == list:
+                    shapes.extend(n.output_shapes)
+                else:
+                    shapes.append(n.output_shapes)
+            counts_outputs.append(np.sum([np.prod(s[1:]) for s in shapes]))
         plt.barh(y, counts_outputs, align='center', color=colors[2], left=offset)
         offset += np.array(counts_outputs, dtype=int)
         legend.append('outputs')

@@ -126,12 +126,13 @@ def reduced_focal_loss(y_true, y_pred, gamma=2., alpha=1., th=0.5):
     return tf.reduce_sum(loss, axis=-1)
 
 
-def ciou_loss(y_true, y_pred):
+def ciou_loss(y_true, y_pred, variant='diou'):
     '''Conpute Distance-IoU loss.
 
     # Arguments
         y_true: Ground truth bounding boxes, tensor of shape (..., 4)
         y_pred: Predicted bounding boxes, tensor of shape (..., 4)
+        variant: 'diou', 'ciou', 'logciou'
 
     # Returns
         loss: Distance-IoU loss, tensor of shape (...)
@@ -196,18 +197,16 @@ def ciou_loss(y_true, y_pred):
     w_temp = 2 * w_pred
     ar = (8 / (np.pi ** 2)) * arctan * ((w_pred - w_temp) * h_pred)
     
-    # calculate diou
-    diouk = 1-iouk + u
-    
-    # calculate ciou
-    #ciouk = 1-iouk + u + alpha*ar
-    
-    # "I found that -log(IoU) is more stable and converge faster than (1-IoU)"
-    #ciouk = -tf.math.log(iouk) + u + alpha*ar
-    
-    return diouk
-    #return ciouk
-
+    # calculate diou, ciou, ...
+    if variant == 'diou':
+        return 1-iouk + u
+    elif variant == 'ciou':
+        return 1-iouk + u + alpha*ar
+    elif variant == 'logciou':
+        # "I found that -log(IoU) is more stable and converge faster than (1-IoU)"
+        return -tf.math.log(iouk) + u + alpha*ar
+    else:
+        return None
 
 class LearningRateDecay(Callback):
     def __init__(self, methode='linear', base_lr=1e-3, n_desired=40000, desired=0.1, bias=0.0, minimum=0.1):
@@ -477,7 +476,7 @@ def filter_signal(x, y, window_length=1000):
     return x, y
 
 
-def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only=False, autoscale=True):
+def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only=False, autoscale=True, legend_loc='best'):
     """Plot and compares the training log contained in './checkpoints/'.
     
     # Agrumets
@@ -494,7 +493,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
         Different batch size leads to different epoch length.
     """
     
-    loss_terms = {'loss', 'error'}
+    loss_terms = {'loss', 'error', 'abs'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
     
     if type(log_dirs) == str:
@@ -580,7 +579,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
         
         if ymax > 0:
             plt.title(k, y=1.05)
-            plt.legend()
+            plt.legend(loc=legend_loc)
             
             ax1 = plt.gca()
             ax1.set_xlim(xmin, xmax)
@@ -611,7 +610,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
 
 def plot_history(log_dirs, names=None, limits=None, autoscale=True):
 
-    loss_terms = {'loss', 'error'}
+    loss_terms = {'loss', 'error', 'abs'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
     
     if type(log_dirs) == str:
