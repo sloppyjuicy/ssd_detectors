@@ -77,7 +77,9 @@ def cross_entropy_loss(y_true, y_pred):
     """
     eps = K.epsilon()
     y_pred = K.clip(y_pred, eps, 1.-eps)
-    loss = - y_true*K.log(y_pred) - (1.-y_true)*K.log(1.-y_pred)
+    #loss = - y_true*K.log(y_pred) - (1.-y_true)*K.log(1.-y_pred)
+    pt = tf.where(tf.equal(y_true, 1.), y_pred, 1.-y_pred)
+    loss = - K.log(pt)
     return tf.reduce_sum(loss, axis=-1)
 
 def focal_loss(y_true, y_pred, gamma=2., alpha=1.):
@@ -94,14 +96,12 @@ def focal_loss(y_true, y_pred, gamma=2., alpha=1.):
         [Focal Loss for Dense Object Detection](https://arxiv.org/abs/1708.02002)
     """
     eps = K.epsilon()
-    #y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
     y_pred = K.clip(y_pred, eps, 1.-eps)
     #loss = - K.pow(1-y_pred, gamma) * y_true*K.log(y_pred) - K.pow(y_pred, gamma) * (1-y_true)*K.log(1-y_pred)
     pt = tf.where(tf.equal(y_true, 1.), y_pred, 1.-y_pred)
     loss = - K.pow(1.-pt, gamma) * K.log(pt)
     loss = alpha * loss
     return tf.reduce_sum(loss, axis=-1)
-
 
 def reduced_focal_loss(y_true, y_pred, gamma=2., alpha=1., th=0.5):
     """Compute binary reduced focal loss.
@@ -117,10 +117,9 @@ def reduced_focal_loss(y_true, y_pred, gamma=2., alpha=1., th=0.5):
         [Reduced Focal Loss: 1st Place Solution to xView object detection in Satellite Imagery](https://arxiv.org/abs/1903.01347)
     """
     eps = K.epsilon()
-    #y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
     y_pred = K.clip(y_pred, eps, 1.-eps)
     pt = tf.where(tf.equal(y_true, 1.), y_pred, 1.-y_pred)
-    fr = tf.where(tf.less(pt, th), K.ones_like(pt), K.pow(1.-pt, gamma)/(th**gamma))
+    fr = tf.where(tf.less(pt, 1-th), 1, K.pow((1-pt)/th, gamma))
     loss = - fr * K.log(pt)
     loss = alpha * loss
     return tf.reduce_sum(loss, axis=-1)
@@ -519,6 +518,8 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
             max_df = df
         if 'iteration' not in df.keys():
             df['iteration'] = np.arange(1,len(df)+1)
+        if 'epoch' not in df.keys():
+            df['epoch'] = np.zeros(len(df))
         df = df[limits]
         df = {k: np.array(df[k]) for k in df.keys()}
         dfs.append(df)
@@ -561,7 +562,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
     colors = [next(colorgen) for i in range(len(dfs))]
     
     for k in names:
-        plt.figure(figsize=(16, 8))
+        plt.figure(figsize=(16, 6))
         xmin, xmax, ymax = 2147483647, 0, 0
         for i, df in enumerate(dfs):
             if k in df.keys():
@@ -658,18 +659,23 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True):
         for i, df in enumerate(dfs):
             if k in df.keys():
                 plt.plot(df['epoch'], df[k], color=colors[i], label=log_dirs[i])
-                if np.all(np.isfinite(df[k])):
+                if not len(df[k]):
+                    pass
+                elif np.all(np.isfinite(df[k])):
                     ymin, ymax = min(ymin, np.min(df[k])), max(ymax, np.max(df[k]))
                 else:
                     print(log_dirs[i]+' NaN or inf')
             kv = 'val_'+k
             if kv in df.keys():
                 plt.plot(df['epoch'], df[kv], '--', color=colors[i])
-                if np.all(np.isfinite(df[kv])):
+                if not len(df[kv]):
+                    pass
+                elif np.all(np.isfinite(df[kv])):
                     ymin, ymax = min(ymin, np.max(df[kv])), max(ymax, np.max(df[kv]))
                 else:
                     print(log_dirs[i]+' NaN or inf')
-            xmin, xmax = min(xmin, df['epoch'][0]), max(xmax, df['epoch'][-1])
+            if len(df[k]):
+                xmin, xmax = min(xmin, df['epoch'][0]), max(xmax, df['epoch'][-1])
         
         if ymax > sys.float_info.min:
             plt.xlim(xmin, xmax)
