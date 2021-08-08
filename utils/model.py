@@ -60,6 +60,24 @@ def load_weights(model, filepath, layer_names=None):
             print(e)
     f.close()
 
+def freeze_layers(model, trainable_conv_layers=0, trainable_bn_layers=0):
+    """Set layers to none trainable.
+    
+    # Argumentes
+        model: Keras model
+        trainable_conv_layers: Number ob trainable convolution layers at 
+            the end of the architecture.
+        trainable_bn_layers: Number ob trainable batchnorm layers at the 
+            end of the architecture.
+    """
+    layers = [l for l in model.layers if l.__class__.__name__ in ['Dense', 'Conv1D', 'Conv2D', 'Conv3D']]
+    for i, l in enumerate(layers[::-1]):
+        l.trainable = i < trainable_conv_layers
+    
+    layers = [l for l in model.layers if l.__class__.__name__ in ['BatchNormalization']]
+    for i, l in enumerate(layers[::-1]):
+        l.trainable = i < trainable_bn_layers
+
 
 def calc_memory_usage(model, batch_size=1):
     """Compute the memory usage of a keras modell.
