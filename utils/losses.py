@@ -112,7 +112,7 @@ def reduced_focal_loss(y_true, y_pred, gamma=2., alpha=1., th=0.5):
     eps = K.epsilon()
     y_pred = K.clip(y_pred, eps, 1.-eps)
     pt = tf.where(tf.equal(y_true, 1.), y_pred, 1.-y_pred)
-    fr = tf.where(tf.less(pt, 1-th), 1, K.pow((1-pt)/th, gamma))
+    fr = tf.where(tf.less(pt, 1.-th), 1., K.pow((1.-pt)/th, gamma))
     loss = - fr * K.log(pt)
     loss = alpha * loss
     return tf.reduce_sum(loss, axis=-1)
@@ -199,3 +199,4 @@ def ciou_loss(y_true, y_pred, variant='diou'):
         return -tf.math.log(iouk) + u + alpha*ar
     else:
         return None
+
