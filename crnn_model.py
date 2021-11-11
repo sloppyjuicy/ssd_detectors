@@ -1,11 +1,11 @@
 """Keras implementation of CRNN."""
 
-import tensorflow.keras.backend as K
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Activation, Conv1D, Conv2D, MaxPool2D, BatchNormalization, LSTM, GRU
-from tensorflow.keras.layers import Reshape, Permute, Lambda, Bidirectional
-from tensorflow.keras.layers import concatenate
-from tensorflow.keras.layers import LeakyReLU
+import keras.backend as K
+from keras.models import Model
+from keras.layers import Input, Dense, Activation, Conv1D, Conv2D, MaxPool2D, BatchNormalization, LSTM, GRU
+from keras.layers import Reshape, Permute, Lambda, Bidirectional
+from keras.layers import concatenate
+from keras.layers import LeakyReLU
 
 
 def CRNN(input_shape, num_classes, prediction_only=False, gru=False, cnn=False):

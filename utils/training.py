@@ -2,13 +2,13 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import tensorflow.keras.backend as K
+import keras.backend as K
 import tensorflow as tf
 import os, sys, time, warnings, itertools
 
-from tensorflow.keras.callbacks import Callback
-from tensorflow.keras.optimizers import Optimizer
-from tensorflow.keras.metrics import Mean
+from keras.callbacks import Callback
+from keras.optimizers import Optimizer
+from keras.metrics import Mean
 
 from .losses import *
 
@@ -463,6 +463,8 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True):
         xmin, xmax = 2147483647, 0
         ymin, ymax = sys.float_info.max, sys.float_info.min
         for i, df in enumerate(dfs):
+            if len(df['epoch']):
+                xmin, xmax = min(xmin, df['epoch'][0]), max(xmax, df['epoch'][-1])
             if k in df.keys():
                 plt.plot(df['epoch'], df[k], color=colors[i], label=log_dirs[i])
                 if not len(df[k]):
@@ -480,8 +482,6 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True):
                     ymin, ymax = min(ymin, np.max(df[kv])), max(ymax, np.max(df[kv]))
                 else:
                     print(log_dirs[i]+' NaN or inf')
-            if len(df[k]):
-                xmin, xmax = min(xmin, df['epoch'][0]), max(xmax, df['epoch'][-1])
         
         if ymax > sys.float_info.min:
             plt.xlim(xmin, xmax)

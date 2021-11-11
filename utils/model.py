@@ -11,7 +11,7 @@ def get_layers(model):
     layers = []
     def get(m):
         for l in m.layers:
-            if l.__class__.__name__ == 'Model':
+            if l.__class__.__name__ in ['Model', 'Functional']:
                 get(l)
             else:
                 if l not in layers:
@@ -33,28 +33,31 @@ def load_weights(model, filepath, layer_names=None):
     """
     filepath = os.path.expanduser(filepath)
     f = h5py.File(filepath, 'r')
+    
     if layer_names == None:
-        layer_names = [s.decode() for s in f.attrs['layer_names']]
+        layer_names = f.attrs['layer_names']
+        
     for name in layer_names:
         if type(name) in [tuple, list]:
-            layer_name = name[1]
-            name = name[0]
+            name_model = name[1]
+            name_file = name[0]
         else:
-            layer_name = name
-        g = f[name]
+            name_model = str(name, 'utf-8')
+            name_file = name
+        g = f[name_file]
         weights = [np.array(g[wn]) for wn in g.attrs['weight_names']]
         try:
-            layer = model.get_layer(layer_name)
+            layer = model.get_layer(name_model)
             #assert layer is not None
-        except:
-            print('layer missing %s' % (layer_name))
+        except ValueError:
+            print('layer missing %s' % (name_model))
             print('    file  %s' % ([w.shape for w in weights]))
             continue
         try:
-            #print('load %s' % (layer_name))
+            #print('load %s' % (name_model))
             layer.set_weights(weights)
         except Exception as e:
-            print('something went wrong %s' % (layer_name))
+            print('something went wrong %s' % (name_model))
             print('    model %s' % ([w.shape.as_list() for w in layer.weights]))
             print('    file  %s' % ([w.shape for w in weights]))
             print(e)
@@ -90,8 +93,17 @@ def calc_memory_usage(model, batch_size=1):
     """
 
     shapes_mem_count = 0
+    #shapes_mem_count += np.sum([np.sum([np.sum([np.prod(s[1:]) for s in n.output_shapes]) for n in l._inbound_nodes]) for l in layers])
+    counts_outputs = []
     for l in model.layers:
-        shapes_mem_count += np.sum([np.sum([np.prod(s[1:]) for s in n.output_shapes]) for n in l._inbound_nodes])
+        shapes = []
+        for n in l._inbound_nodes:
+            if type(n.output_shapes) == list:
+                shapes.extend(n.output_shapes)
+            else:
+                shapes.append(n.output_shapes)
+        counts_outputs.append(np.sum([np.prod(s[1:]) for s in shapes]))
+    shapes_mem_count += np.sum(counts_outputs)
         
     trainable_count = np.sum([np.prod(p.shape) for p in model.trainable_weights])
     non_trainable_count = np.sum([np.prod(p.shape) for p in model.non_trainable_weights])

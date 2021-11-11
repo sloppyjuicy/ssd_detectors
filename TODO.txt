@@ -1,4 +1,37 @@
 
+fix weight loading in ssd and tb
+fix data pipeline
+
+fix load_weights, det by_name=False, rec by_name=True
+detector that only detects polygon
+
+prior_wh / 2 when input size is increased from 512 to 1024
+
+docu, input shape, type and scale of models
+update readme
+    images on top
+input generator with dataset skips last incomplet batch
+class weights?
+
+plot_log, plot_history
+    plotpath = os.path.join(checkpath, 'plots')
+    os.makedirs(plotpath, exist_ok=True)
+    plt.savefig(os.path.join(plotpath, 'history_loss.png'), bbox_inches='tight') # jpg/png/pgf
+
+ssd decoding layer, https://github.com/pierluigiferrari/ssd_keras/blob/master/keras_layers/keras_layer_DecodeDetections.py
+
+
+DONE
+    replace model.fit_generator, eager training
+    end2end py and ipynb files
+        update to tf2, no sessions
+        rename sl_model > det_model
+        rename crnn_graph > rec_model
+
+    do recognition for all text instances from one image in one recognition sample
+    use separable convolution
+    requirements.txt
+
 train models with natural aspect ratio
 cleanup and update debugging notebooks
 detection and recognition in one model?
@@ -10,11 +43,21 @@ change naming
     'inter layer segments', inter vs within
     gt_util_... vs gtu_...
 
+    GTUtility.split, GTUtility.merge
+
+    nms_thresh nms_threshold / iou_threshold
+    keep_top_k top_k
+    good_rboxs good_rboxes
+    .hdf5 > .h5
+
+
 data augmentation
     augmentation and batch size in validation?
     add random rotation, translation, zero padding
 
 SSD
+    use numba, check if numba is available and use conditional decorator
+    reduce memory usage
     check if prior boxes are always at the same location in the receptive field
         is it related to bad results on small objects?
     convert fc6, fc7 vgg layers to conv layers
@@ -67,6 +110,9 @@ SegLink
 TextBoxes / TextBoxes++
     use recognition score to reduce false positives in detection
 
+    DONE
+        write a layer for decoding and cropping TBPP output
+
 CRNN
     larger / variable input width
     more units
@@ -75,8 +121,10 @@ CRNN
     normalize input, subtract mean
     
     DONE
+        train fully convolutional CNN, should be faster then RNN
         larger alphabet
         GRU
         editdistance / levenshtein distance
+
 
 

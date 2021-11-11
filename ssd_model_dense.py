@@ -1,9 +1,9 @@
-import tensorflow.keras.backend as K
-from tensorflow.keras.layers import Activation
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import MaxPooling2D
-from tensorflow.keras.layers import BatchNormalization
-from tensorflow.keras.layers import concatenate
+import keras.backend as K
+from keras.layers import Activation
+from keras.layers import Conv2D
+from keras.layers import MaxPooling2D
+from keras.layers import BatchNormalization
+from keras.layers import concatenate
 
 from utils.layers import leaky_relu
 

@@ -1,7 +1,7 @@
 """SegLink training utils."""
 
 import tensorflow as tf
-import tensorflow.keras.backend as K
+import keras.backend as K
 
 from utils.training import smooth_l1_loss, softmax_loss
 from ssd_training import compute_metrics
@@ -182,9 +182,9 @@ class SegLinkFocalLoss(object):
         seg_loc_pred = tf.reshape(y_pred[:,:,2:7], [-1, 5])
         
         seg_loc_loss = smooth_l1_loss(seg_loc_true, seg_loc_pred)
-        
         pos_seg_loc_loss = tf.reduce_sum(seg_loc_loss * pos_seg_mask_float)
-        pos_seg_loc_loss = pos_seg_loc_loss / (num_pos_seg + eps)
+        
+        seg_loc_loss = pos_seg_loc_loss / (num_pos_seg + eps)
         
         # link confidence loss
         inter_link_conf_true = tf.reshape(y_true[:,:,7:23], [-1, 2])
@@ -229,8 +229,6 @@ class SegLinkFocalLoss(object):
                 tf.concat([inter_link_class_pred, cross_link_class_pred], 0),
                 tf.concat([inter_link_conf, cross_link_conf], 0),
                 top_k=100*batch_size)
-        
-        #seg_loc_loss = seg_loc_loss / (num_pos_seg + eps) * num_seg
         
         return eval('{'+' '.join(['"'+n+'": '+n+',' for n in self.metric_names])+'}')
 

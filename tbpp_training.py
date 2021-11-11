@@ -1,7 +1,7 @@
 """TextBoxes++ training utils."""
 
 import tensorflow as tf
-import tensorflow.keras.backend as K
+import keras.backend as K
 
 from ssd_training import smooth_l1_loss, focal_loss, compute_metrics
 

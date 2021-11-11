@@ -1,10 +1,10 @@
 """Keras implementation of TextBoxes++."""
 
-from tensorflow.keras.layers import Input, Activation
-from tensorflow.keras.layers import Conv2D, SeparableConv2D
-from tensorflow.keras.layers import Flatten, Reshape
-from tensorflow.keras.layers import concatenate
-from tensorflow.keras.models import Model
+from keras.layers import Input, Activation
+from keras.layers import Conv2D, SeparableConv2D
+from keras.layers import Flatten, Reshape
+from keras.layers import concatenate
+from keras.models import Model
 
 from utils.layers import Normalize
 from ssd_model import ssd512_body

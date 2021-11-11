@@ -1,13 +1,13 @@
 """Keras implementation of SegLink."""
 
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Activation
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Flatten
-from tensorflow.keras.layers import Input
-from tensorflow.keras.layers import concatenate
-from tensorflow.keras.layers import Reshape
+from keras.models import Model
+from keras.layers import Activation
+from keras.layers import Conv2D
+from keras.layers import Dense
+from keras.layers import Flatten
+from keras.layers import Input
+from keras.layers import concatenate
+from keras.layers import Reshape
 
 from utils.layers import Normalize
 from ssd_model import ssd512_body

@@ -94,7 +94,7 @@ class BaseGTUtility(object):
                         angle += np.pi
                     angle = angle/np.pi*180-90
                 else:
-                    angle = 0                
+                    angle = 0
                 ax.text(xy[0,0], xy[0,1], label_name, bbox={'facecolor':color, 'alpha':0.5}, rotation=angle)
     
     def plot_input(self, input_img):
@@ -363,20 +363,20 @@ class InputGenerator(object):
 
     def saturation(self, rgb):
         gs = self.grayscale(rgb)
-        alpha = 2 * np.random.random() * self.saturation_var 
+        alpha = 2 * np.random.random() * self.saturation_var
         alpha += 1 - self.saturation_var
         rgb = rgb * alpha + (1 - alpha) * gs[:, :, None]
         return np.clip(rgb, 0, 255)
 
     def brightness(self, rgb):
-        alpha = 2 * np.random.random() * self.brightness_var 
+        alpha = 2 * np.random.random() * self.brightness_var
         alpha += 1 - self.saturation_var
         rgb = rgb * alpha
         return np.clip(rgb, 0, 255)
 
     def contrast(self, rgb):
         gs = self.grayscale(rgb).mean() * np.ones_like(rgb)
-        alpha = 2 * np.random.random() * self.contrast_var 
+        alpha = 2 * np.random.random() * self.contrast_var
         alpha += 1 - self.contrast_var
         rgb = rgb * alpha + (1 - alpha) * gs
         return np.clip(rgb, 0, 255)
@@ -406,7 +406,7 @@ class InputGenerator(object):
                 y[:,[0,2,4,6]] = 1 - y[:,[2,0,6,4]]
                 y[:,[1,3,5,7]] = y[:,[3,1,7,5]]
             else:
-                y[:,[0,2]] = 1 - y[:,[2,0]]    
+                y[:,[0,2]] = 1 - y[:,[2,0]]
         return img, y
     
     def vertical_flip(self, img, y, vflip_prob):

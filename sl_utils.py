@@ -3,7 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-import tensorflow.keras.backend as K
+import keras.backend as K
 import h5py
 import os
 import sys

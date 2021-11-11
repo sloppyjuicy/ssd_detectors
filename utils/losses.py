@@ -1,7 +1,7 @@
 
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras.backend as K
+import keras.backend as K
 
 
 def square_loss(y_true, y_pred):

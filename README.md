@@ -56,9 +56,10 @@ For suitable versions of the necessary dependencies, see [environment.ipynb](mis
 
 ## Usage
 The usage of the code is quite straightforward.
-- use git to clone the repository
+- use `git` to clone the repository
 - `pip install -r requirements.txt`
 - run the related Jupyter notebooks.
+
 Some of the scripts (e.g. for video and model conversion) can also be executed form the command line.
 
 ## Pretrained models

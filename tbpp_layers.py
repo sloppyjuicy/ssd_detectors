@@ -2,8 +2,8 @@
 import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
-import tensorflow.keras.backend as K
-from tensorflow.keras.layers import Layer
+import keras.backend as K
+from keras.layers import Layer
 
 
 class TBPPDecodeAndCrop(Layer):

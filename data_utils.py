@@ -1,6 +1,6 @@
 """Some utils for data augmentation."""
 
-from tensorflow.keras.applications.imagenet_utils import preprocess_input
+from keras.applications.imagenet_utils import preprocess_input
 import numpy as np
 from random import shuffle
 from scipy.misc import imread
