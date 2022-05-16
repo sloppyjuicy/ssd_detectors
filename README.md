@@ -108,7 +108,7 @@ parameters   23,477,798
 model size        91 MB  
 
 #### [TextBoxes++ with dense blocks, separable convolution and Focal Loss](http://46.163.79.21/ssd_detectors/202003070004_dstbpp512fl_synthtext.zip)
-the number of parameters has been reduced by ≈ 0.94% compared to the original TextBoxes++ with VGG backbone (35,763,078 parameters)  
+the number of parameters has been reduced by ≈ 94% compared to the original TextBoxes++ with VGG backbone (35,763,078 parameters)  
 trained and tested on subsets of SynthText  
 threshold          0.45  
 precision         0.973  

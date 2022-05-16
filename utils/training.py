@@ -415,7 +415,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
             #print(k+' no values')
             plt.close()
 
-def plot_history(log_dirs, names=None, limits=None, autoscale=True):
+def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validation=False):
 
     loss_terms = {'loss', 'error', 'abs'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
@@ -474,7 +474,7 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True):
                 else:
                     print(log_dirs[i]+' NaN or inf')
             kv = 'val_'+k
-            if kv in df.keys():
+            if not no_validation and kv in df.keys():
                 plt.plot(df['epoch'], df[kv], '--', color=colors[i])
                 if not len(df[kv]):
                     pass
