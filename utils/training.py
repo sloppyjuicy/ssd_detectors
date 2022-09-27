@@ -298,7 +298,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
         Different batch size leads to different epoch length.
     """
     
-    loss_terms = {'loss', 'error', 'abs'}
+    loss_terms = {'loss', 'error', 'abs', 'dist'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
     
     if type(log_dirs) == str:
@@ -369,22 +369,28 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
     
     for k in names:
         plt.figure(figsize=(16, 6))
-        xmin, xmax, ymax = 2147483647, 0, 0
+        xmin, xmax, ymax, ymean = 2147483647, 0, 0, 0
+        non_zero = False
         for i, df in enumerate(dfs):
             if k in df.keys():
-                if window_length:
-                    plt.plot(*filter_signal(df['iteration'], df[k], window_length), color=colors[i], label=log_dirs[i])
-                    if not filtered_only:
-                        plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], alpha=0.3)
-                else:
-                    plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], label=log_dirs[i])
-                xmin, xmax = min(xmin, df['iteration'][0]), max(xmax, df['iteration'][-1])
-                if np.all(np.isfinite(df[k])):
-                    ymax = max(ymax, min(np.max(df[k]), np.mean(df[k])*4))
-                else:
-                    print(log_dirs[i]+' NaN or inf')
+                if len(df[k]):
+                    non_zero = True
+                    if window_length:
+                        plt.plot(*filter_signal(df['iteration'], df[k], window_length), color=colors[i], label=log_dirs[i])
+                        if not filtered_only:
+                            plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], alpha=0.3)
+                    else:
+                        plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], label=log_dirs[i])
+                    xmin, xmax = min(xmin, df['iteration'][0]), max(xmax, df['iteration'][-1])
+                    if np.all(np.isfinite(df[k])):
+                        ymax = max(ymax, np.max(df[k]))
+                        ymean = max(ymean, np.mean(df[k]))
+                    else:
+                        print(log_dirs[i]+' NaN or inf')
         
-        if ymax > 0:
+        ymax = min(ymax, ymean*4)
+        
+        if non_zero:
             plt.title(k, y=1.05)
             plt.legend(loc=legend_loc)
             
@@ -417,7 +423,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
 
 def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validation=False):
 
-    loss_terms = {'loss', 'error', 'abs'}
+    loss_terms = {'loss', 'error', 'abs', 'dist'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
     
     if type(log_dirs) == str:
