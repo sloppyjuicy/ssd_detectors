@@ -1,5 +1,4 @@
 
-fix weight loading in ssd and tb
 fix data pipeline
 
 fix load_weights, det by_name=False, rec by_name=True

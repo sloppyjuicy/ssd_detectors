@@ -1,4 +1,10 @@
-"""Some utils related to Keras models."""
+"""Some utils related to Keras models.
+
+SPDX-License-Identifier: MIT
+Copyright © 2017 - 2022 Markus Völk
+Code was taken from https://github.com/mvoelk/ssd_detectors
+"""
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,7 +28,7 @@ def get_layers(model):
 
 def load_weights(model, filepath, layer_names=None):
     """Loads layer weights from a HDF5 save file.
-     
+
     # Arguments
         model: Keras model
         filepath: Path to HDF5 file
@@ -33,10 +39,10 @@ def load_weights(model, filepath, layer_names=None):
     """
     filepath = os.path.expanduser(filepath)
     f = h5py.File(filepath, 'r')
-    
+
     if layer_names == None:
         layer_names = f.attrs['layer_names']
-        
+
     for name in layer_names:
         if type(name) in [tuple, list]:
             name_model = name[1]
@@ -65,7 +71,7 @@ def load_weights(model, filepath, layer_names=None):
 
 def freeze_layers(model, trainable_conv_layers=0, trainable_bn_layers=0):
     """Set layers to none trainable.
-    
+
     # Argumentes
         model: Keras model
         trainable_conv_layers: Number ob trainable convolution layers at 
@@ -76,7 +82,7 @@ def freeze_layers(model, trainable_conv_layers=0, trainable_bn_layers=0):
     layers = [l for l in model.layers if l.__class__.__name__ in ['Dense', 'Conv1D', 'Conv2D', 'Conv3D']]
     for i, l in enumerate(layers[::-1]):
         l.trainable = i < trainable_conv_layers
-    
+
     layers = [l for l in model.layers if l.__class__.__name__ in ['BatchNormalization']]
     for i, l in enumerate(layers[::-1]):
         l.trainable = i < trainable_bn_layers
@@ -104,7 +110,7 @@ def calc_memory_usage(model, batch_size=1):
                 shapes.append(n.output_shapes)
         counts_outputs.append(np.sum([np.prod(s[1:]) for s in shapes]))
     shapes_mem_count += np.sum(counts_outputs)
-        
+    
     trainable_count = np.sum([np.prod(p.shape) for p in model.trainable_weights])
     non_trainable_count = np.sum([np.prod(p.shape) for p in model.non_trainable_weights])
     
@@ -170,7 +176,7 @@ def plot_parameter_statistic(model, layer_types=['Dense', 'Conv2D'], trainable=T
         plt.barh(y, counts_channels, align='center', color=colors[3], left=offset)
         offset += np.array(counts_channels, dtype=int)
         legend.append('channels')
-        
+    
     plt.yticks(y, names)
     plt.ylim(y[0]-1, y[-1]+1)
     ax = plt.gca()
@@ -221,7 +227,7 @@ def calc_receptive_field(model, layer_name, verbose=False):
             pass
         else:
             print('unknown layer type %s %s' % (l.name, layer_type))
-            
+        
         k = np.array(k)
         s = np.array(s)
         d = np.array(d)
