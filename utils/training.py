@@ -1,3 +1,10 @@
+  GNU nano 4.8                                                                                                                       losses.py                                                                                                                       Modified
+"""
+SPDX-License-Identifier: MIT
+Copyright © 2017 - 2022 Markus Völk
+Code was taken from https://github.com/mvoelk/ssd_detectors
+"""
+
 
 import numpy as np
 import pandas as pd
