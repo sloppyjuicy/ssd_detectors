@@ -47,6 +47,46 @@ def shrinkage_loss(y_true, y_pred, a=10.0, c=0.2):
     loss = tf.square(l) / (1 + tf.exp(a*(c-l)))
     return tf.reduce_sum(loss, axis=-1)
 
+def dynamic_shrinkage_loss(y_true, y_pred, mask=None, a=5.0, c=0.5, autoscale=True, mean_all=False, reduce=True):
+    """Dynamically scaled version of the Shrinkage Loss.
+    """
+
+    if mask is None:
+        mask = K.ones_like(y_true[...,0])
+    mask = mask[...,None]
+    num_pos = K.sum(mask)
+
+    l = tf.abs(y_true - y_pred)
+
+    if mean_all:
+        m = K.mean(l, axis=-2, keepdims=True)
+    else:
+        m = K.sum(l*mask, axis=-2, keepdims=True) / num_pos
+
+    if reduce:
+        mean_abs = K.mean(m)
+    else:
+        mean_abs = l
+
+    if autoscale:
+        eps = 1e-5
+        m = tf.clip_by_value(m, 0, 1e5)
+        m = tf.stop_gradient(m)
+        #l = 1.0 * l / (m + eps)
+        l = 0.5 * l / (m + eps)
+
+    f = 1 / (1 + tf.exp(a*(c-l)))
+
+    loss = f * l
+    #loss = f * K.square(l)
+    #loss = - f * K.log(l+ 1e-8)
+    loss = loss * mask
+
+    if reduce:
+        loss = K.sum(loss) / num_pos
+
+    return mean_abs, loss
+
 def softmax_loss(y_true, y_pred):
     """Compute cross entropy loss aka softmax loss.
 
