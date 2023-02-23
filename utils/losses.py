@@ -53,43 +53,68 @@ def shrinkage_loss(y_true, y_pred, a=10.0, c=0.2):
     loss = tf.square(l) / (1 + tf.exp(a*(c-l)))
     return tf.reduce_sum(loss, axis=-1)
 
-def dynamic_shrinkage_loss(y_true, y_pred, mask=None, a=5.0, c=0.5, autoscale=True, mean_all=False, reduce=True):
+def dynamic_shrinkage_loss(y_true, y_pred, mask=None, a=5.0, c=0.5, autoscale=True, mean_all=False, reduce=True,
+                          with_certainty=False):
     """Dynamically scaled version of the Shrinkage Loss.
+
+    # Arguments
+        y_true, y_pred: float tensor of shape (n,c)
+        mask: float tensor with binary values of shape (n)
+        a: float parameter from Shrinkage Loss
+        c: float parameter form Shrinkage Loss
+        autoscale: boolean
+        mean_all: boolean
+        reduce: boolean
+    # Retrun
+        mean_abs:
+        loss:
+        [certainty]:
     """
 
-    if mask is None:
-        mask = K.ones_like(y_true[...,0])
-    mask = mask[...,None]
+    eps = 1e-6
+
+    if mask is not None:
+        mask = mask[...,None]
+    else:
+        mask = K.ones_like(y_true[...,0:1])
     num_pos = K.sum(mask)
 
     l = tf.abs(y_true - y_pred)
 
+    abs_err = l
+
     if mean_all:
         m = K.mean(l, axis=-2, keepdims=True)
     else:
-        m = K.sum(l*mask, axis=-2, keepdims=True) / num_pos
+        m = K.sum(l*mask, axis=-2, keepdims=True) / (num_pos + eps)
 
-    if reduce:
-        mean_abs = K.mean(m)
-    else:
-        mean_abs = l
+    m = tf.stop_gradient(tf.clip_by_value(m, eps, 1e5))
 
     if autoscale:
-        eps = 1e-5
-        m = tf.clip_by_value(m, 0, 1e5)
-        m = tf.stop_gradient(m)
-        #l = 1.0 * l / (m + eps)
         l = 0.5 * l / (m + eps)
 
     f = 1 / (1 + tf.exp(a*(c-l)))
 
     loss = f * l
     #loss = f * K.square(l)
-    #loss = - f * K.log(l+ 1e-8)
-    loss = loss * mask
+    #loss = - f * K.log(l+eps)
+
+    loss = tf.reduce_sum(loss, axis=-1, keepdims=True) * mask
+    mean_abs = tf.reduce_mean(abs_err, axis=-1, keepdims=True) * mask
 
     if reduce:
-        loss = K.sum(loss) / num_pos
+        loss = K.sum(loss) / (num_pos + eps)
+        mean_abs = K.sum(mean_abs) / (num_pos + eps)
+
+    if with_certainty:
+        certainty = K.exp(abs_err/(m+eps) * np.log(0.5))
+        certainty = K.min(certainty, axis=-1, keepdims=True)
+        certainty = K.stop_gradient(certainty)
+        # notes:
+        #     np.log(0.5) = -0.6931471805599453
+        #     certainty > 0.5 if error is less then average error
+        #     certainty < 0.5 if error is greater then average error
+        return mean_abs, loss, certainty
 
     return mean_abs, loss
 
